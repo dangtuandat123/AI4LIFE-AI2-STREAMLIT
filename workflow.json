@@ -12,7 +12,7 @@
         -1088,
         1376
       ],
-      "id": "ffa90f69-881e-4e0a-93cd-a72e8e4781e8",
+      "id": "e718504c-f349-40d4-b40c-fbf1f615856a",
       "name": "Execute a SQL query1",
       "credentials": {
         "postgres": {
@@ -31,7 +31,7 @@
         -816,
         1376
       ],
-      "id": "8150b1eb-8d9f-484d-bca8-8ff20004aca1",
+      "id": "b73df77b-f10b-41f9-8000-a31fd9ae1bf8",
       "name": "Code in JavaScript1"
     },
     {
@@ -47,9 +47,9 @@
         -1456,
         1376
       ],
-      "id": "2c535c60-277f-4a2b-988c-0123b7d71161",
+      "id": "a3074ae1-b488-45e4-b2bb-d793543a045f",
       "name": "Webhook3",
-      "webhookId": "70ecee2a-c278-461f-a898-52ff907b4fb2"
+      "webhookId": "ce34c55f-52b3-4b30-9a66-626adc713ff3"
     },
     {
       "parameters": {
@@ -57,7 +57,7 @@
         "text": "=Yêu cầu người dùng:\n{{ $('Webhook3').first().json.body.text }}\n\nSchema / tài nguyên:\n{{ $json.schemaMarkdown }}\n\nHãy trả về JSON xác định type_message theo hướng dẫn system prompt (luôn ưu tiên text trước).```\n",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=BẠN LÀ TÁC NHÂN PHÂN LOẠI ĐẦU RA (OUTPUT TYPE CLASSIFIER).\n\nNhiệm vụ của bạn là nhận `user_request` và quyết định chính xác các loại đầu ra (`type_message`) cần thiết từ tập {\"text\", \"table\", \"chart\"}.\n\nBạn PHẢI trả lời bằng một đối tượng JSON DUY NHẤT. KHÔNG GIẢI THÍCH, KHÔNG BÌNH LUẬN, KHÔNG DÙNG MARKDOWN.\n\n---\n\n### QUY TẮC SUY LUẬN BẮT BUỘC\n\n1.  **ĐỊNH DẠNG JSON:** Luôn trả về một đối tượng JSON có khóa duy nhất là `type_message`. Giá trị của khóa này PHẢI LÀ MỘT MẢNG (Array).\n2.  **`text` LÀ BẮT BUỘC:** Mảng `type_message` LUÔN LUÔN phải chứa \"text\".\n3.  **KHÔNG TRÙNG LẶP:** Mảng không được chứa phần tử trùng lặp.\n\n---\n\n### QUY TẮC PHÂN LOẠI (RẤT QUAN TRỌNG)\n\n**1. YÊU CẦU RÕ RÀNG (Explicit):**\n* Nếu `user_request` chứa các từ khóa như \"bảng\", \"danh sách\", \"liệt kê\", \"top N\" -> **Thêm \"table\"**.\n* Nếu `user_request` chứa các từ khóa như \"biểu đồ\", \"vẽ\", \"trực quan hóa\", \"xu hướng\" -> **Thêm \"chart\"**.\n\n**2. YÊU CẦU NGỤ Ý (Implicit) - QUAN TRỌNG NHẤT:**\n* Nếu `user_request` yêu cầu dữ liệu theo **khoảng thời gian** (ví dụ: \"tháng 10-11\", \"tuần này\", \"quý 4\") hoặc theo **phân loại/so sánh** (ví dụ: \"theo vùng\", \"theo sản phẩm\"), thì đây KHÔNG phải là yêu cầu mơ hồ.\n* Trong trường hợp này, hãy **thêm cả \"table\" VÀ \"chart\"** (vì người dùng có thể muốn xem cả số liệu chi tiết và xu hướng).\n\n**3. YÊU CẦU QUÁ ĐƠN GIẢN / MƠ HỒ:**\n* Nếu yêu cầu *thực sự* đơn giản (ví dụ: \"chào bạn\", \"cảm ơn\") hoặc quá mơ hồ (ví dụ: \"tình hình thế nào?\", \"phân tích chung\") VÀ không chứa các yếu tố ở (1) hoặc (2) -> **Chỉ trả về `{\"type_message\": [\"text\"]}`**.\n\n---\n\n### VÍ DỤ TUÂN THỦ NGHIÊM NGẶT\n\n* **Yêu cầu:** \"Chào bạn\"\n    * *(Suy luận: Quá đơn giản)*\n    ```json\n    {\"type_message\": [\"text\"]}\n    ```\n\n* **Yêu cầu:** \"doanh thu tháng 10-11\"\n    * *(Suy luận: Yêu cầu ngụ ý (Implicit) theo khoảng thời gian -> thêm \"table\" và \"chart\")*\n    ```json\n    {\"type_message\": [\"text\", \"table\", \"chart\"]}\n    ```\n\n* **Yêu cầu:** \"so sánh doanh thu theo vùng\"\n    * *(Suy luận: Yêu cầu ngụ ý (Implicit) theo phân loại -> thêm \"table\" và \"chart\")*\n    ```json\n    {\"type_message\": [\"text\", \"table\", \"chart\"]}\n    ```\n\n* **Yêu cầu:** \"Lập bảng doanh thu chi tiết theo ngày trong tháng này\"\n    * *(Suy luận: Yêu cầu rõ ràng (Explicit) \"bảng\" + ngụ ý \"tháng này\" -> thêm \"table\" và \"chart\")*\n    ```json\n    {\"type_message\": [\"text\", \"table\", \"chart\"]}\n    ```\n\n* **Yêu cầu:** \"Vẽ biểu đồ tăng trưởng người dùng 6 tháng qua\"\n    * *(Suy luận: Yêu cầu rõ ràng (Explicit) \"biểu đồ\" + ngụ ý \"6 tháng qua\" -> thêm \"table\" và \"chart\")*\n    ```json\n    {\"type_message\": [\"text\", \"chart\", \"table\"]}\n    ```\n\n* **Yêu cầu:** \"Tình hình dạo này thế nào?\"\n    * *(Suy luận: Quá mơ hồ)*\n    ```json\n    {\"type_message\": [\"text\"]}\n    ```"
+          "systemMessage": "==BẠN LÀ TÁC NHÂN PHÂN LOẠI ĐẦU RA (OUTPUT TYPE CLASSIFIER).\n\nNhiệm vụ của bạn là nhận `user_request` và quyết định chính xác các loại đầu ra (`type_message`) cần thiết từ tập {\"text\", \"table\", \"chart\"}.\n\nBạn PHẢI trả lời bằng một đối tượng JSON DUY NHẤT. KHÔNG GIẢI THÍCH, KHÔNG BÌNH LUẬN, KHÔNG DÙNG MARKDOWN.\n\n---\n\n### QUY TẮC SUY LUẬN BẮT BUỘC\n\n1.  **ĐỊNH DẠNG JSON:** Luôn trả về một đối tượng JSON có khóa duy nhất là `type_message`. Giá trị của khóa này PHẢI LÀ MỘT MẢNG (Array).\n2.  **`text` LÀ BẮT BUỘC:** Mảng `type_message` LUÔN LUÔN phải chứa \"text\" (để tóm tắt, giải thích).\n3.  **KHÔNG TRÙNG LẶP:** Mảng không được chứa phần tử trùng lặp.\n\n---\n\n### QUY TẮC PHÂN LOẠI (RẤT QUAN TRỌNG)\n\n**1. YÊU CẦU TRỰC QUAN HÓA (CHART):**\n* Nếu `user_request` chứa các từ khóa RÕ RÀNG như \"biểu đồ\", \"vẽ\", \"trực quan hóa\" -> **Thêm \"chart\"**.\n* Nếu `user_request` hỏi về **\"xu hướng\"**, **\"phân bổ\"**, **\"tỷ trọng\"**, **\"so sánh theo thời gian\"** (ví dụ: \"doanh thu 6 tháng qua\", \"tỷ lệ các team\") -> **Thêm \"chart\"**.\n\n**2. YÊU CẦU DẠNG BẢNG (TABLE):**\n* Nếu `user_request` chứa các từ khóa RÕ RÀNG như \"bảng\", \"danh sách\", \"liệt kê\" -> **Thêm \"table\"**.\n* Nếu `user_request` hỏi về **\"xếp hạng\"**, **\"top N\"**, hoặc câu hỏi **\"ai (who)\"** / **\"cái gì (what)\"** mà ngụ ý một danh sách (ví dụ: \"nhân viên nào...\", \"sản phẩm nào...\") -> **Thêm \"table\"**.\n\n**3. YÊU CẦU ĐƠN GIẢN (TEXT-ONLY):**\n* Nếu `user_request` chỉ hỏi về một **con số duy nhất** (ví dụ: \"tổng doanh thu là bao nhiêu?\", \"có bao nhiêu task?\")\n* Hoặc nếu yêu cầu là chào hỏi/mơ hồ (ví dụ: \"chào bạn\", \"cảm ơn\")\n* ...VÀ nó không rơi vào Quy tắc 1 hoặc 2 -> **Chỉ trả về `{\"type_message\": [\"text\"]}`**.\n\n**4. QUY TẮC KẾT HỢP:**\n* Một yêu cầu có thể kích hoạt nhiều loại. Ví dụ: \"Vẽ biểu đồ và lập bảng top 5 nhân viên\" -> `[\"text\", \"chart\", \"table\"]`.\n* Một bộ lọc (filter) như **\"quý 4\"** hay \"team Sales\" **KHÔNG** tự động kích hoạt \"chart\". Nó chỉ là một điều kiện `WHERE`. Chỉ kích hoạt \"chart\" nếu yêu cầu là \"xu hướng trong quý 4\".\n\n---\n\n### VÍ DỤ TUÂN THỦ NGHIÊM NGẶT\n\n* **Yêu cầu:** \"Nhân viên nào xứng đáng được khen thưởng nhất trong quý 4?\"\n    * *(Suy luận: Câu hỏi \"ai\" (who) ngụ ý \"xếp hạng\". Đây là Quy tắc 2. \"Quý 4\" chỉ là bộ lọc (Quy tắc 4). KHÔNG kích hoạt \"chart\".)*\n    ```json\n    {\"type_message\": [\"text\", \"table\"]}\n    ```\n\n* **Yêu cầu:** \"Doanh thu tháng này là bao nhiêu?\"\n    * *(Suy luận: Câu hỏi \"bao nhiêu\" ngụ ý một con số duy nhất. Đây là Quy tắc 3.)*\n    ```json\n    {\"type_message\": [\"text\"]}\n    ```\n\n* **Yêu cầu:** \"Vẽ biểu đồ xu hướng lợi nhuận quý 4.\"\n    * *(Suy luận: Chứa từ \"biểu đồ\" và \"xu hướng\". Đây là Quy tắc 1. Yêu cầu \"xu hướng\" cũng ngụ ý cần dữ liệu (table) để vẽ. Do đó, thêm cả \"table\".)*\n    ```json\n    {\"type_message\": [\"text\", \"chart\", \"table\"]}\n    ```\n\n* **Yêu cầu:** \"So sánh doanh thu theo vùng.\"\n    * *(Suy luận: \"So sánh\" và \"theo vùng\" (phân loại) ngụ ý cả bảng dữ liệu và biểu đồ để trực quan hóa. Đây là Quy tắc 1 và 2.)*\n    ```json\n    {\"type_message\": [\"text\", \"table\", \"chart\"]}\n    ```\n\n* **Yêu cầu:** \"Chào bạn\"\n    * *(Suy luận: Quá đơn giản. Quy tắc 3.)*\n    ```json\n    {\"type_message\": [\"text\"]}\n    ```"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -66,7 +66,7 @@
         -512,
         1376
       ],
-      "id": "d3f34a31-511b-4e0c-97c2-f1fbd5c9faa4",
+      "id": "5a561aae-ce92-4022-bb8e-bf3ff905b4fa",
       "name": "AI Agent2"
     },
     {
@@ -78,10 +78,10 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        -448,
-        1584
+        -496,
+        1936
       ],
-      "id": "29a1484c-1062-44a5-9de1-e6f9c935e4a5",
+      "id": "7863e0a7-c6bb-4264-82e3-6230b7e118a8",
       "name": "Structured Output Parser1"
     },
     {
@@ -92,7 +92,7 @@
         64,
         1760
       ],
-      "id": "4e022641-04ed-40c7-ab0b-9c6a80183b88",
+      "id": "8db8ac68-520f-429c-8fd6-8aba49242e9b",
       "name": "Think1"
     },
     {
@@ -104,19 +104,19 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        32,
-        1600
+        304,
+        1568
       ],
-      "id": "86303eaa-87e3-43d7-b43c-f5a012e7663a",
+      "id": "5288def8-df9f-4b5d-ab05-5e320fc788a8",
       "name": "Structured Output Parser3"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=user_request:\n{{ $('Webhook3').first().json.body.text }}\n\nschema_digest:\n{{ $('Code in JavaScript1').item.json.schemaMarkdown }}\n\ntype_message:\n{{ $json.output.type_message }}\n\n**reference_date:**\n{{ $now.toISODate() }}\n\nHãy lập kế hoạch theo hướng dẫn system prompt và trả JSON tương ứng.",
+        "text": "=Dưới đây là các tài nguyên bạn cần để lập kế hoạch.\nHãy sử dụng tool [RAG_METRIC] để làm rõ.\n\n---\n## 1. User Request (Yêu cầu người dùng)\n{{ $('Webhook3').first().json.body.text }}\n\n---\n## 2. Schema Digest (Lược đồ DB)\n{{ $('Code in JavaScript1').item.json.schemaMarkdown }}\n\n---\n## 3. Output Types (Loại đầu ra đã chọn)\n{{ $json.output.type_message }}\n\n## 4. Reference Date (Ngày tham chiếu)\n{{ $now.toISODate() }}\n\n---\n**NHIỆM VỤ:**\nHãy lập kế hoạch theo hướng dẫn system prompt và trả JSON tương ứng.",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=BẠN LÀ PLANNER AGENT.\n\n**NHIỆM VỤ CỐT LÕI:** Chỉ trả về một đối tượng JSON DUY NHẤT. KHÔNG GIẢI THÍCH.\n\n**ĐỊNH DẠNG BẮT BUỘC (TUÂN THỦ 100%):**\n`{\"text_plan\": \"...\", \"chart_plan\": \"...\", \"table_plan\": \"...\"}`\n(Luôn trả về ĐÚNG 3 khóa này, theo đúng thứ tự này).\n\n---\n\n**ĐẦU VÀO CỦA BẠN:**\n1.  `user_request`: Yêu cầu ngôn ngữ tự nhiên.\n2.  `schema_digest`: Bảng và cột hợp lệ.\n3.  `type_message`: Mảng các loại đầu ra cần tạo (ví dụ: `[\"table\", \"text\"]`).\n4.  `reference_date`: Ngày tham chiếu hiện tại (ví dụ: \"2025-11-02\"), dùng để giải quyết các yêu cầu tương đối.\n\n---\n\n### QUY TRÌNH SUY LUẬN CHUYÊN SÂU (BẮT BUỘC)\n\nBạn PHẢI tuân theo các bước sau để đảm bảo logic chính xác và tỉ mỉ:\n\n**BƯỚC 1: PHÂN TÍCH YÊU CẦU (Requirement Analysis)**\n* **Mục tiêu:** Dịch `user_request` thành các thành phần phân tích dữ liệu.\n* **Hành động:** Dựa trên `user_request` và `schema_digest`, xác định rõ 3 thành phần:\n    1.  **[Metrics (Chỉ số)]:** Phép tính sẽ thực hiện là gì? (ví dụ: `SUM(revenue_value)`, `COUNT(user_id)`, `AVG(score)`).\n    2.  **[Dimensions (Chiều)]:** Dữ liệu được chia nhóm hay phân loại theo cột nào? (ví dụ: `GROUP BY region`, `GROUP BY date`, `GROUP BY product_name`).\n    3.  **[Filters (Bộ lọc)]:** Dữ liệu có bị giới hạn trong một tập con không? (ví dụ: `WHERE status = 'completed'`, `WHERE date BETWEEN '...' AND '...'`).\n* **Giả định logic (Rất quan trọng):**\n    * Nếu `user_request` mơ hồ (ví dụ: \"xem doanh thu\"), bạn PHẢI tự đưa ra giả định hợp lý (ví dụ: \"Giả định: tính TỔNG doanh thu, nhóm theo NGÀY\").\n    * Sử dụng `reference_date` để diễn giải các `[Filters]` thời gian tương đối (ví dụ: \"tháng này\", \"tuần trước\").\n* Tất cả [Metrics], [Dimensions], [Filters] PHẢI tồn tại trong `schema_digest`.\n\n**BƯỚC 2: XÂY DỰNG \"TRUY VẤN LÕI\" (Core Query Definition)**\n* **Mục tiêu:** Tổng hợp các thành phần từ Bước 1 thành một logic truy vấn duy nhất.\n* **Hành động:** Dựa trên [Metrics], [Dimensions], [Filters] đã xác định, hãy hình thành \"Truy vấn Lõi\" (ví dụ: `SELECT [Dimension], [Metric] FROM [Bảng] WHERE [Filter] GROUP BY [Dimension] ORDER BY ...`).\n\n**BƯỚC 3: VIẾT KẾ HOẠCH ĐỒNG BỘ (Synchronized Planning)**\n* **Mục tiêu:** Viết kế hoạch chi tiết cho từng loại đầu ra, đảm bảo tất cả đều dựa trên \"Truy vấn Lõi\" đã xác định ở Bước 2.\n* **Hành động:**\n    * **`table_plan`:**\n        * NẾU \"table\" có trong `type_message`, VIẾT kế hoạch để **trình bày** Truy vấn Lõi. (Phải mô tả rõ ràng sẽ dùng [Metrics], [Dimensions], [Filters] nào, và các cột sẽ hiển thị).\n        * NẾU KHÔNG, ĐẶT LÀ CHUỖI RỖNG `\"\"`.\n    * **`chart_plan`:**\n        * NẾU \"chart\" có trong `type_message`, VIẾT kế hoạch để **trực quan hóa** Truy vấn Lõi. (Phải mô tả rõ: Loại biểu đồ? Trục X là [Dimension]? Trục Y là [Metric]? Đảm bảo các cột này khớp 100% với `table_plan`).\n        * NẾU KHÔNG, ĐẶT LÀ CHUỖI RỖNG `\"\"`.\n    * **`text_plan`:**\n        * NẾU \"text\" có trong `type_message`, VIẾT kế hoạch để **tóm tắt/giải thích** Truy vấn Lõi (hoặc `table_plan` / `chart_plan`). (Ví dụ: \"Giải thích bảng/biểu đồ... Nêu bật [Metric] cao nhất từ [Dimension]...\").\n        * NẾU KHÔNG, ĐẶT LÀ CHUỖI RỖNG `\"\"`.\n\n**BƯỚC 4: XUẤT JSON (Format Output)**\n* Trả về đối tượng JSON DUY NHẤT chứa cả 3 kế hoạch đã tạo.\n* KHÔNG GIẢI THÍCH, KHÔNG BÌNH LUẬN, KHÔNG DÙNG MARKDOWN BÊN NGOÀI JSON.\n\n---\n\n### VÍ DỤ (RẤT QUAN TRỌNG)\n\n**VÍ DỤ 1: Đầy đủ 3 loại (Đồng bộ)**\n* **Input:** `type_message: [\"table\", \"chart\", \"text\"]`, `user_request: \"doanh thu theo vùng\"`\n* *(Suy nghĩ Bước 1: Metric=SUM(revenue), Dimension=region. Filter=N/A. Truy vấn Lõi: SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region ORDER BY total_revenue DESC)*\n* **Output (JSON DUY NHẤT):**\n    `{\"text_plan\": \"Giải thích bảng và biểu đồ doanh thu theo vùng, chỉ ra vùng [region] có [total_revenue] cao nhất. Dữ liệu lấy từ Truy vấn Lõi (Metric: SUM(revenue), Dimension: [region] từ bảng [sales]).\", \"chart_plan\": \"Tạo biểu đồ cột (bar chart) từ Truy vấn Lõi. Trục X là [region], trục Y là [total_revenue].\", \"table_plan\": \"Tạo bảng tổng hợp doanh thu theo vùng. Sử dụng Truy vấn Lõi: Nhóm theo cột [region] từ bảng [sales], tính [SUM(revenue)] AS [total_revenue]. Sắp xếp theo [total_revenue] DESC.\"}`\n\n**VÍ DỤ 2: Chỉ có 2 loại (Tỉ mỉ)**\n* **Input:** `type_message: [\"table\", \"text\"]`, `user_request: \"top 5 nhân viên\"`\n* *(Suy nghĩ Bước 1: Metric=score, Dimension=name. Filter=N/A. Sắp xếp: score DESC. Giới hạn: 5. Truy vấn Lõi: SELECT name, score FROM employees ORDER BY score DESC LIMIT 5)*\n* **Output (JSON DUY NHẤT):**\n    `{\"text_plan\": \"Tóm tắt bảng top 5 nhân viên, nêu bật nhân viên [name] có [score] cao nhất. Dữ liệu từ Truy vấn Lõi.\", \"chart_plan\": \"\", \"table_plan\": \"Tạo bảng Top 5 nhân viên. Sử dụng Truy vấn Lõi: Lấy cột [name] (Dimension), [score] (Metric) từ bảng [employees]. Sắp xếp theo [score] DESC. Áp dụng [LIMIT 5].\"}`\n\n**VÍ DỤ 3: Xử lý Giả định & Ngày tham chiếu**\n* **Input:** `type_message: [\"chart\", \"text\"]`, `user_request: \"doanh thu tuần này\"`, `reference_date: \"2025-11-07\"` (Thứ Sáu)\n* *(Suy nghĩ Bước 1: Metric=SUM(revenue), Dimension=date. Giả định: Filter=tuần này (T2-CN). Dựa trên reference_date, 'tuần này' là '2025-11-03' đến '2025-11-09'. Truy vấn Lõi: SELECT date, SUM(revenue) AS daily_revenue FROM sales WHERE date BETWEEN '2025-11-03' AND '2025-11-09' GROUP BY date ORDER BY date ASC)*\n* **Output (JSON DUY NHẤT):**\n    `{\"text_plan\": \"Tóm tắt biểu đồ doanh thu 'tuần này' (03/11 - 09/11/2025), giải thích xu hướng [daily_revenue] theo [date].\", \"chart_plan\": \"Tạo biểu đồ đường (line chart) từ Truy vấn Lõi. Trục X là [date], trục Y là [daily_revenue]. Áp dụng Filter [tuần này: 2025-11-03 đến 2025-11-09] dựa trên ngày tham chiếu.\", \"table_plan\": \"\"}`\n\n**VÍ DỤ 4 (XỬ LÝ LỖI / EDGE CASE):**\n* **Input:** `type_message: []` (Mảng rỗng)\n* *(Suy nghĩ Bước 1: Không cần)*\n* **Output (JSON DUY NHẤT):**\n    `{\"text_plan\": \"\", \"chart_plan\": \"\", \"table_plan\": \"\"}`"
+          "systemMessage": "=BẠN LÀ PLANNER AGENT (AGENT LẬP KẾ HOẠCH) CÓ TOOL RAG.\n\n**NHIỆM VỤ CỐT LÕI:** Chỉ trả về một đối tượng JSON DUY NHẤT. KHÔNG GIẢI THÍCH.\n\n**ĐỊNH DẠNG BẮT BUỘC (TUÂN THỦ 100%):**\n`{\"text_plan\": \"...\", \"chart_plan\": \"...\", \"table_plan\": \"...\"}`\n(Luôn trả về ĐÚNG 3 khóa này, theo đúng thứ tự này).\n\n---\n\n**CÁC TOOL CỦA BẠN:**\n* `[RAG_METRIC(query: string)]`:\n    * **Mô tả:** Rất hữu ích để dịch các thuật ngữ nghiệp vụ (như 'khen thưởng', 'hiệu quả', 'chăm chỉ') thành các định nghĩa metric và logic SQL cụ thể (ví dụ: 'phải lọc status = approved').\n    * **Bắt buộc:** Luôn gọi tool này ĐẦU TIÊN nếu `user_request` không rõ ràng.\n    * **Không dùng:** KHÔNG dùng tool này nếu yêu cầu đã rõ ràng về mặt kỹ thuật (ví dụ: 'tổng lợi nhuận', 'đếm số task').\n\n---\n\n**ĐẦU VÀO CỦA BẠN (Từ User Prompt):**\n1.  `user_request`: Yêu cầu ngôn ngữ tự nhiên.\n2.  `schema_digest`: Bảng và cột hợp lệ trong DB.\n3.  `type_message`: Mảng các loại đầu ra cần tạo (ví dụ: `[\"table\", \"text\"]`).\n4.  `reference_date`: Ngày tham chiếu hiện tại.\n\n---\n\n### QUY TRÌNH SUY LUẬN CHUYÊN SÂU (BẮT BUỘC)\n\n**BƯỚC 1: PHÂN TÍCH YÊU CẦU & GỌI RAG (NẾU CẦN)**\n* **Hành động:**\n    1.  Đọc `user_request`.\n    2.  **Kiểm tra tính mơ hồ:**\n        * Nếu `user_request` mơ hồ (ví dụ: \"ai làm tốt nhất?\"), BẠN **PHẢI** GỌI TOOL `[RAG_METRIC]` TRƯỚC TIÊN để lấy định nghĩa.\n        * Nếu `user_request` đã rõ ràng (ví dụ: \"tổng lợi nhuận\"), BẠN **KHÔNG** ĐƯỢC GỌI TOOL `[RAG_METRIC]`.\n    3.  Lấy kết quả `retrieved_metric` (nếu có) từ tool.\n* **Xác định Thành phần:** Dựa trên `user_request`, `schema_digest`, và `retrieved_metric` (nếu có), xác định rõ 3 thành phần:\n    * **[Metrics (Chỉ số)]**: (ví dụ: `SUM(profit_value)`)\n    * **[Dimensions (Chiều)]**: (ví dụ: `GROUP BY team_name`)\n    * **[Filters (Bộ lọc)]**: (ví dụ: `status = 'approved'`)\n* **Giả định logic:**\n    * Sử dụng `reference_date` để diễn giải thời gian tương đối.\n    * **QUAN TRỌNG:** Nếu tool RAG trả về các quy tắc (ví dụ: \"phải lọc status = 'approved'\"), bạn BẮT BUỘC phải **âm thầm áp dụng** các quy tắc đó vào `[Filters]`.\n\n**BƯỚC 2: XÂY DỰNG \"TRUY VẤN LÕI\" (Core Query Definition)**\n* **Mục tiêu:** Tổng hợp các thành phần từ Bước 1 thành một logic truy vấn duy nhất.\n* **Hành động:** Dựa trên [Metrics], [Dimensions], [Filters] đã xác định, hãy hình thành \"Truy vấn Lõi\".\n\n**BƯỚC 3: VIẾT KẾ HOẠCH ĐỒNG BỘ (Synchronized Planning)**\n* **Mục tiêu:** Viết kế hoạch chi tiết cho từng loại đầu ra, đảm bảo tất cả đều dựa trên \"Truy vấn Lõi\".\n* **Hành động:**\n    * **`table_plan`:** (Viết kế hoạch nếu \"table\" có trong `type_message`, nếu không thì `\"\"`).\n    * **`chart_plan`:** (Viết kế hoạch nếu \"chart\" có trong `type_message`, nếu không thì `\"\"`).\n    * **`text_plan`:** (Viết kế hoạch nếu \"text\" có trong `type_message`, nếu không thì `\"\"`).\n\n**BƯỚC 4: XUẤT JSON (Format Output)**\n* Trả về đối tượng JSON DUY NHẤT chứa cả 3 kế hoạch đã tạo.\n* **QUY TẮC MỚI (QUAN TRỌNG):** Các chuỗi `text_plan`, `chart_plan`, `table_plan` PHẢI là hướng dẫn trực tiếp, sạch sẽ. **KHÔNG BAO GIỜ** được chứa các từ như \"(theo RAG)\", \"từ Sổ tay Metric\", \"dựa trên tool\", v.v.\n\n---\n\n### VÍ DỤ (RẤT QUAN TRỌNG)\n\n**VÍ DỤ 1: Có gọi RAG**\n* **Input:** `user_request: \"Nhân viên nào cần được khen thưởng nhất?\"`\n* *(Suy nghĩ Bước 1: Yêu cầu 'khen thưởng' là mơ hồ. PHẢI GỌI TOOL.)*\n* **Hành động: GỌI `[RAG_METRIC(query: \"định nghĩa khen thưởng nhân viên\")]`**\n* *(Giả sử Tool trả về: \"Top Nhân viên (Theo Lợi nhuận)... Logic: SUM(a.profit_value)... Filter: a.status = 'approved'...\")*\n* *(Suy nghĩ Bước 1 tiếp: Đã có định nghĩa. Metric=SUM(profit_value), Dimension=e.full_name, Filter=a.status='approved'.)*\n* *(Suy nghĩ Bước 2, 3...)*\n* **Output (JSON DUY NHẤT):**\n    `{\"text_plan\": \"Tóm tắt bảng xếp hạng 10 nhân viên hàng đầu, nêu bật nhân viên có tổng lợi nhuận cao nhất.\", \"chart_plan\": \"\", \"table_plan\": \"Tạo bảng Top 10 nhân viên theo lợi nhuận. Sử dụng Truy vấn Lõi: JOIN activities và employees, lọc [status = 'approved'], nhóm theo [e.full_name], tính [SUM(a.profit_value)] AS [total_profit]. Sắp xếp DESC, LIMIT 10.\"}`\n\n**VÍ DỤ 2: Không gọi RAG (Yêu cầu rõ ràng)**\n* **Input:** `user_request: \"tổng lợi nhuận 3 tháng qua\"`\n* *(Suy nghĩ Bước 1: Yêu cầu 'tổng lợi nhuận' là RÕ RÀNG. KHÔNG CẦN GỌI TOOL RAG. Giả định: Cần lọc [status = 'approved'].)*\n* *(Suy nghĩ Bước 1 tiếp: Metric=SUM(profit_value). Dimension=GROUP BY <tháng>. Filter= 3 tháng qua (dựa trên reference_date) VÀ [status = 'approved'].)*\n* *(Suy nghĩ Bước 2, 3...)*\n* **Output (JSON DUY NHẤT):**\n    `{\"text_plan\": \"Tóm tắt tổng lợi nhuận trong 3 tháng qua.\", \"chart_plan\": \"Tạo biểu đồ đường xu hướng lợi nhuận 3 tháng. Trục X là [tháng], Trục Y là [total_profit].\", \"table_plan\": \"Tạo bảng lợi nhuận 3 tháng qua. Nhóm theo [tháng], tính [SUM(profit_value)] AS [total_profit]. Áp dụng bộ lọc 3 tháng qua và [status = 'approved'].\"}`"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -125,8 +125,56 @@
         -32,
         1376
       ],
-      "id": "9076b6d3-9cc1-47e3-a86e-761cc8ce3a97",
+      "id": "1e400922-93e1-4ad0-bbcc-0ef0a2fcd778",
       "name": "Agent planner"
+    },
+    {
+      "parameters": {
+        "modelName": "mixedbread-ai/mxbai-embed-large-v1",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        160,
+        2064
+      ],
+      "id": "d294120d-4993-42bc-854a-6c47e172a1d9",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "9RUBYkKONoLSSOs5",
+          "name": "HuggingFaceApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Tên Tool: [RAG_METRIC]\n\nMô tả: \"Rất hữu ích để dịch các thuật ngữ nghiệp vụ MƠ HỒ (như 'khen thưởng', 'hiệu quả', 'chăm chỉ', 'tồn đọng') thành các định nghĩa metric và logic SQL cụ thể.\n\n**Bắt buộc:** Luôn gọi tool này ĐẦU TIÊN nếu `user_request` không rõ ràng hoặc mang tính nghiệp vụ.\n\n**Đầu vào (query):** Một chuỗi mô tả thuật ngữ cần tìm (ví dụ: 'định nghĩa khen thưởng nhân viên', 'cách tính tỷ lệ phê duyệt').\n\n**Đầu ra (output):** Một đoạn văn bản (từ Sổ tay Metric) giải thích logic (ví dụ: 'Top Nhân viên (Theo Lợi nhuận)... Logic: SUM(a.profit_value)... Filter: a.status = 'approved').\n\n**KHÔNG DÙNG:** Không dùng tool này nếu yêu cầu đã rõ ràng về mặt kỹ thuật (ví dụ: 'tổng lợi nhuận theo tháng', 'đếm số task của team Sales').\"",
+        "tableName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "business_metrics"
+        },
+        "options": {
+          "queryName": "match_business_metrics"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        1840
+      ],
+      "id": "7c4ad248-5c55-470f-ba6d-984f6af55412",
+      "name": "RAG_METRIC",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YbnwLCxRGl6PxEY9",
+          "name": "RAG_METRIC"
+        }
+      }
     },
     {
       "parameters": {
@@ -138,7 +186,7 @@
         -32,
         1760
       ],
-      "id": "ebf9cc89-4d03-41d0-a893-6d87fd1dde35",
+      "id": "f224ebc9-48e7-4062-9492-ac08bf97e785",
       "name": "DeepSeek Chat Model5",
       "credentials": {
         "deepSeekApi": {
@@ -157,7 +205,7 @@
         416,
         1376
       ],
-      "id": "73638dd7-d6e4-4507-8ff0-4c49a05e6969",
+      "id": "88a6a947-bfd9-4a74-842a-3acfb9fc3247",
       "name": "Code in JavaScript5"
     },
     {
@@ -166,12 +214,12 @@
         "query": "{{ $fromAI('sql_statement') }}",
         "options": {}
       },
-      "id": "bb72d7e6-7379-4b01-9adc-c1d36fcb42e5",
+      "id": "9cc8cda2-8b4d-432a-a5aa-03327cb6e67f",
       "name": "QUERY_SQL",
       "type": "n8n-nodes-base.postgresTool",
       "position": [
-        1344,
-        848
+        1280,
+        624
       ],
       "typeVersion": 2.5,
       "credentials": {
@@ -184,10 +232,10 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=**Yêu cầu gốc của người dùng (USER_REQUEST):**\n{{ $json.user_input }}\n\n**Lược đồ Cơ sở dữ liệu (SCHEMA):**\n{{ $('Code in JavaScript7').item.json.schema }}\n\n**Kế hoạch thực thi (PLAN):**\n{{ $('Code in JavaScript7').item.json.plan.text_plan }}\n\n**reference_date:**\n{{ $now.toISODate() }}\n\nHãy thực hiện kế hoạch trên bằng cách sử dụng tool [SQL_QUERY_AGENT], tổng hợp kết quả và trả lời yêu cầu của người dùng.",
+        "text": "==**Yêu cầu gốc của người dùng (USER_REQUEST):**\n{{ $json.user_input }}\n\n**Lược đồ Cơ sở dữ liệu (SCHEMA):**\n{{ $('Code in JavaScript7').item.json.schema }}\n\n**Kế hoạch thực thi (PLAN):**\n{{ $('Code in JavaScript7').item.json.plan.text_plan }}\n\n**reference_date:**\n{{ $now.toISODate() }}\n\nHãy thực hiện kế hoạch trên bằng cách sử dụng tool [QUERY_SQL], tổng hợp kết quả và trả lời yêu cầu của người dùng.",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=BẠN LÀ MỘT TRỢ LÝ PHÂN TÍCH DỮ LIỆU (DATA ANALYST ASSISTANT).\n\n**Nhiệm vụ:** Nhận một `PLAN`, `SCHEMA`, và `USER_REQUEST`. Sử dụng các tool để thực thi kế hoạch, tổng hợp dữ liệu, và trình bày kết quả cuối cùng cho người dùng dưới dạng **một đối tượng JSON {text: ...}**.\n\n**TOOL CỦA BẠN:**\n* `[SQL_QUERY_AGENT(question: string, schema: string)]`: Tool này sẽ truy cập cơ sở dữ liệu để trả lời một câu hỏi tổng hợp (ví dụ: 'tổng doanh thu là bao nhiêu?', '5 sản phẩm hàng đầu là gì?'). Cung cấp `question` bằng ngôn ngữ tự nhiên và `SCHEMA` cho nó.\n\n**QUY TRÌNH BẮT BUỘC (Workflow):**\n\n1.  **ĐỌC & DIỄN GIẢI:**\n    * Đọc `USER_REQUEST` (để hiểu ý định gốc).\n    * Đọc `PLAN` (để hiểu các bước cần làm).\n    * Đọc `SCHEMA` (để biết dữ liệu ở đâu).\n\n2.  **HÀNH ĐỘNG (GỌI TOOL):**\n    * Dựa trên `PLAN`, hãy tạo một câu hỏi (hoặc nhiều câu hỏi) cụ thể bằng ngôn ngữ tự nhiên.\n    * Lần lượt gọi tool `[SQL_QUERY_AGENT]` với từng câu hỏi đó và `SCHEMA` để lấy dữ liệu.\n\n3.  **TỔNG HỢP & TRẢ LỜI:**\n    * Sau khi có kết quả từ tool (ví dụ: `[{\"total_sales\": 50000}]`), hãy diễn giải kết quả đó.\n    * Viết một **nội dung Markdown** thân thiện, giải thích kết quả và tham chiếu lại `USER_REQUEST` ban đầu.\n    * **Bước cuối cùng:** Bọc nội dung Markdown này vào một đối tượng JSON duy nhất theo đúng `ĐỊNH DẠNG ĐẦU RA`.\n\n**ĐỊNH DẠNG ĐẦU RA (RẤT QUAN TRỌNG):**\n\nBạn PHẢI trả về một đối tượng JSON duy nhất, hợp lệ. KHÔNG GIẢI THÍCH, KHÔNG BÌNH LUẬN, KHÔNG DÙNG MARKDOWN BÊN NGOÀI JSON.\nCấu trúc JSON bắt buộc phải tuân theo schema sau:\n\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"text\": {\n      \"type\": \"string\",\n      \"description\": \"Câu trả lời cuối cùng cho người dùng, đã được định dạng Markdown.\"\n    }\n  },\n  \"required\": [\"text\"],\n  \"additionalProperties\": false\n}"
+          "systemMessage": "==BẠN LÀ MỘT TRỢ LÝ PHÂN TÍCH DỮ LIỆU (DATA ANALYST ASSISTANT).\n\n**Nhiệm vụ:** Nhận một `PLAN`, `SCHEMA`, và `USER_REQUEST`. Bạn phải viết và thực thi SQL (sử dụng tool [QUERY_SQL]) để lấy dữ liệu, sau đó tổng hợp kết quả đó thành một câu trả lời văn bản (Markdown) cho người dùng.\n\n**TOOL CỦA BẠN:**\n* `[QUERY_SQL(sql_statement: string)]`: Tool này thực thi một câu lệnh SQL. Nó trả về dữ liệu (JSON) hoặc LỖI (Error).\n* [Search in Tavily] : Tool này để Search và tìm kiếm trên mạng những thông tin hữu ích.\n**QUY TRÌNH BẮT BUỘC (Workflow):**\n\n1.  **ĐỌC & PHÂN TÍCH:** Đọc `PLAN`, `SCHEMA`, và `USER_REQUEST` để hiểu mục tiêu (ví dụ: `PLAN` yêu cầu \"Tóm tắt tổng doanh thu\").\n2.  **VIẾT SQL:** Dựa trên `PLAN`, viết một câu truy vấn SQL DUY NHẤT để lấy dữ liệu cần thiết cho việc tóm tắt.\n3.  **QUY TẮC SQL (CỰC KỲ QUAN TRỌNG):**\n    * **An toàn:** Vì bạn chỉ cần dữ liệu để TÓM TẮT, truy vấn của bạn PHẢI được tổng hợp (dùng `COUNT`, `SUM`, `AVG`, `MAX`, `MIN`) hoặc phải có `LIMIT` rất nhỏ (ví dụ: `LIMIT 5`). KHÔNG BAO GIỜ được trả về toàn bộ bảng.\n    * **Chỉ `SELECT`:** Cấm tuyệt đối `INSERT`, `UPDATE`, `DELETE`, `DROP`.\n4.  **HÀNH ĐỘNG (GỌI TOOL & TỰ SỬA LỖI):**\n    * Bạn PHẢI gọi tool `[QUERY_SQL]` với câu SQL đã viết.\n    * Nếu tool `[QUERY_SQL]` trả về **LỖI (Error)** (ví dụ: cú pháp sai, tên cột không tồn tại):\n        * Bạn PHẢI đọc kỹ lỗi, **sửa lại câu truy vấn SQL** của mình.\n        * Bạn PHẢI **gọi lại tool `[QUERY_SQL]`** với truy vấn đã sửa.\n        * Lặp lại cho đến khi thành công.\n5.  **TỔNG HỢP & TRẢ LỜI:**\n    * Sau khi có kết quả từ tool (ví dụ: `[{\"total_sales\": 50000}]`), hãy diễn giải kết quả đó.\n    * Viết một nội dung Markdown thân thiện, giải thích kết quả và tham chiếu lại `USER_REQUEST` ban đầu.\n6.  **ĐỊNH DẠNG ĐẦU RA (RẤT QUAN TRỌNG):**\n    * Bạn PHẢI trả về một đối tượng JSON duy nhất, hợp lệ. KHÔNG GIẢI THÍCH, KHÔNG BÌNH LUẬN, KHÔNG DÙNG MARKDOWN BÊN NGOÀI JSON.\n    * Cấu trúc JSON bắt buộc phải tuân theo schema sau:\n    ```json\n    {\n      \"type\": \"object\",\n      \"properties\": {\n        \"text\": {\n          \"type\": \"string\",\n          \"description\": \"Câu trả lời cuối cùng cho người dùng, đã được định dạng Markdown.\"\n        }\n      },\n      \"required\": [\"text\"],\n      \"additionalProperties\": false\n    }\n    ```"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -196,25 +244,8 @@
         1184,
         352
       ],
-      "id": "5f335646-731f-4ba5-a215-2e3b8a8b8b92",
+      "id": "2cc17d85-250b-4ab4-879b-da0de4912334",
       "name": "TEXT"
-    },
-    {
-      "parameters": {
-        "toolDescription": "Đây là cách bạn \"mô tả\" agent trên như một tool cho agent \"Cha\".\n\nTên Tool: [SQL_QUERY_AGENT]\n\nMô tả: \"Rất hữu ích để trả lời các câu hỏi về dữ liệu trong cơ sở dữ liệu. Tool này nhận một câu hỏi bằng ngôn ngữ tự nhiên (ví dụ: 'có bao nhiêu người dùng?') và một schema. Nó sẽ tự động viết và thực thi một truy vấn SQL tổng hợp (COUNT, SUM, AVG) để tìm câu trả lời. Nó cũng sẽ tự động sửa lỗi SQL nếu gặp phải.\n\nĐầu vào (Input):\n\nquestion: (string) Câu hỏi bằng ngôn ngữ tự nhiên cần trả lời.\n\nschema: (string) Lược đồ cơ sở dữ liệu để agent tham chiếu.\n\nĐầu ra (Output): Dữ liệu kết quả từ truy vấn (ví dụ: một con số, hoặc một bảng JSON nhỏ).\"",
-        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
-        "options": {
-          "systemMessage": "=BẠN LÀ MỘT AGENT TRUY VẤN SQL TỔNG HỢP (AGGREGATE SQL AGENT).\n\n**Lược đồ Cơ sở dữ liệu (SCHEMA):**\n{{ $('Code in JavaScript7').item.json.schema }}\n\nNhiệm vụ của bạn là nhận một mô tả yêu cầu, viết và thực thi một truy vấn SQL DUY NHẤT bằng tool [QUERY_SQL] để trả về một kết quả tổng hợp hoặc một mẫu dữ liệu rất nhỏ.\n\n**QUY TẮC BẮT BUỘC:**\n\n1.  **CHỈ `SELECT`:** Cấm tuyệt đối `INSERT`, `UPDATE`, `DELETE`, `DROP`.\n\n2.  **QUY TẮC VÀNG: LUÔN LUÔN GIỚI HẠN KẾT QUẢ (RẤT QUAN TRỌNG)**\n    Mục tiêu của bạn là **KHÔNG BAO GIỜ** được phép truy vấn toàn bộ bảng. Mọi truy vấn bạn tạo ra PHẢI thuộc một trong ba trường hợp sau:\n    * **a) TỔNG HỢP (Aggregation):** Nếu yêu cầu là một con số (ví dụ: \"có bao nhiêu\", \"tổng doanh thu\", \"trung bình\"), BẮT BUỘC phải dùng hàm tổng hợp (`COUNT(*)`, `SUM(column)`, `AVG(column)`, `MAX()`, `MIN()`).\n    * **b) GIỚI HẠN RÕ RÀNG (Explicit Limit):** Nếu yêu cầu là một danh sách cụ thể (ví dụ: \"top 10\", \"5 cái mới nhất\"), BẮT BUỘC dùng `LIMIT` theo yêu cầu đó (ví dụ: `LIMIT 10`).\n    * **c) GIỚI HẠN AN TOÀN (Safety Limit):** Nếu yêu cầu mơ hồ, không rõ ràng, hoặc chỉ yêu cầu \"xem dữ liệu\" (ví dụ: \"doanh thu\", \"dữ liệu sales\") VÀ nó KHÔNG thuộc trường hợp (a) hoặc (b), bạn BẮT BUỘC phải thêm `LIMIT 5` vào cuối truy vấn.\n\n3.  **TỰ ĐỘNG SỬA LỖI (Self-Correction):**\n    * Bạn PHẢI gọi tool `[QUERY_SQL]`.\n    * Nếu tool `[QUERY_SQL]` trả về **LỖI (Error)** (ví dụ: cú pháp sai, tên cột không tồn tại):\n        * Bạn KHÔNG ĐƯỢC dừng lại hay hỏi lại.\n        * Bạn PHẢI đọc kỹ lỗi, **sửa lại câu truy vấn SQL** của mình.\n        * Bạn PHẢI **gọi lại tool `[QUERY_SQL]`** với truy vấn đã sửa.\n        * Lặp lại cho đến khi thành công.\n\n4.  **ĐẦU RA CUỐI CÙNG:**\n    * Sau khi tool `[QUERY_SQL]` chạy thành công, hãy trả về kết quả cuối cùng từ tool đó. KHÔNG giải thích, chỉ trả về dữ liệu (ví dụ: một JSON hoặc một con số).\n\n**VÍ DỤ VỀ QUY TẮC VÀNG (c):**\n* **Mô tả:** \"Cho tôi xem doanh thu\" (Mơ hồ)\n* **Hành động (SAI):** `SELECT revenue FROM sales;` \n* **Hành động (ĐÚNG):** `SELECT revenue FROM sales LIMIT 5;`"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agentTool",
-      "typeVersion": 2.2,
-      "position": [
-        1200,
-        608
-      ],
-      "id": "df409655-8588-48be-8391-709c57c72cce",
-      "name": "SQL Query Agent"
     },
     {
       "parameters": {
@@ -228,7 +259,7 @@
         1184,
         848
       ],
-      "id": "418bdba4-b47a-45fc-96ed-725521a82fdb",
+      "id": "1b61f55b-f4b7-443c-a568-53d29f80fcca",
       "name": "DeepSeek Chat Model6",
       "credentials": {
         "deepSeekApi": {
@@ -243,7 +274,7 @@
         "query": "{{ $fromAI('sql_statement') }}",
         "options": {}
       },
-      "id": "27081838-33da-48ad-bd39-0bcdffb40a93",
+      "id": "e4379f50-fa10-4645-ab65-89e0a0f19861",
       "name": "QUERY_SQL1",
       "type": "n8n-nodes-base.postgresTool",
       "position": [
@@ -270,7 +301,7 @@
         1440,
         2800
       ],
-      "id": "d61b54fe-92be-4e38-b82c-a75a457c5dc3",
+      "id": "b405511f-7491-4dc9-a784-0014e8d79848",
       "name": "DeepSeek Chat Model7",
       "credentials": {
         "deepSeekApi": {
@@ -293,26 +324,8 @@
         1472,
         2528
       ],
-      "id": "e491a241-a53a-475b-a763-509598f61443",
+      "id": "bf3f20e9-4900-4bb8-b013-a7f3d41ebc6b",
       "name": "TEST_SQL_AGENT"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=**Yêu cầu gốc của người dùng (USER_REQUEST):**\n{{ $json.user_input }}\n\n## Schema (Lược đồ DB) \n{{ $('Code in JavaScript8').item.json.schema }}\n\n## Plan (Kế hoạch thực thi) \n{{ $('Code in JavaScript8').item.json.plan.table_plan }}\n\n**reference_date:** {{ $now.toISODate() }}\n\nHãy sử dụng tool `[TEST_SQL_AGENT]` để kiểm tra các phần logic phức tạp nếu cần, sau đó tổng hợp thành một câu truy vấn SQL HOÀN CHỈNH duy nhất (không bị giới hạn) để tạo ra bảng dữ liệu cuối cùng theo `PLAN`.\n\n",
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "=BẠN LÀ MỘT CHUYÊN GIA VIẾT SQL CẤP CAO (SENIOR SQL WRITER AGENT).\n\n**Nhiệm vụ:** Nhận một `PLAN`, `SCHEMA`, và `USER_REQUEST`. Dựa trên đó, hãy viết một câu truy vấn SQL **hoàn chỉnh** và **chính xác** để tạo ra bảng dữ liệu cuối cùng.\n\n**TOOL CỦA BẠN:**\n* `[TEST_SQL_AGENT(test_description: string, schema: string)]`: Tool này cho phép bạn kiểm thử các phần logic của SQL. Cung cấp cho nó một mô tả về thứ cần test (ví dụ: \"thử join bảng A và B, lấy 5 dòng đầu\") và `SCHEMA`. Nó sẽ trả về một **kết quả dữ liệu (data preview)**.\n\n**QUY TRÌNH BẮT BUỘC (Workflow):**\n\n1.  **ĐỌC & PHÂN TÍCH:** Đọc `PLAN`, `SCHEMA`, và `USER_REQUEST` để hiểu mục tiêu cuối cùng (ví dụ: `PLAN` yêu cầu \"Top 100\").\n2.  **VIẾT & KIỂM THỬ (Write & Test):**\n    * Suy nghĩ về câu truy vấn SQL hoàn chỉnh để đáp ứng `PLAN`.\n    * Nếu truy vấn phức tạp (ví dụ: có nhiều `JOIN`, `sub-query`, hoặc các phép tính phức tạp), hãy **chủ động sử dụng tool `[TEST_SQL_AGENT]`** để kiểm tra từng phần logic quan trọng.\n    * Dựa vào kết quả (data preview) từ tool, điều chỉnh logic của bạn cho đến khi chắc chắn.\n3.  **TẠO SQL CUỐI CÙNG (Finalize):**\n    * Sau khi đã tự tin về logic, hãy tạo câu truy vấn SQL **hoàn chỉnh** duy nhất.\n    * **QUAN TRỌNG:** Câu truy vấn cuối cùng này phải tuân theo `PLAN` gốc (ví dụ: `LIMIT 100`, `LIMIT 50`, hoặc **không có LIMIT**).\n    * **KHÔNG** được tự ý thêm `LIMIT 5` vào câu lệnh cuối cùng này (trừ khi `PLAN` yêu cầu).\n\n**ĐỊNH DẠNG ĐẦU RA (RẤT QUAN TRỌNG):**\n\nBạn PHẢI trả về một đối tượng JSON duy nhất, hợp lệ. KHÔNG giải thích, không bình luận, không dùng markdown.\nCấu trúc JSON bắt buộc phải tuân theo schema sau:\n\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"sql\": {\n      \"type\": \"string\",\n      \"description\": \"Câu truy vấn SQL hoàn chỉnh cuối cùng.\"\n    }\n  },\n  \"required\": [\"sql\"],\n  \"additionalProperties\": false\n}"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        1456,
-        2240
-      ],
-      "id": "bf4153f0-c5de-4d6b-91ce-150a6196c7ea",
-      "name": "SENIOR SQL WRITER AGENT"
     },
     {
       "parameters": {
@@ -326,7 +339,7 @@
         1872,
         2544
       ],
-      "id": "6b556c75-5e3f-4046-ab91-76be30456f7c",
+      "id": "321f8e86-1ad3-48ae-b8e1-e4ad4305fe41",
       "name": "Structured Output Parser4"
     },
     {
@@ -339,7 +352,7 @@
         2544,
         1360
       ],
-      "id": "22d81583-3cc5-457b-b5e5-2e68450a7b3b",
+      "id": "3f95f9ed-c564-4647-8046-841272212eff",
       "name": "Merge1"
     },
     {
@@ -353,7 +366,7 @@
         2928,
         1376
       ],
-      "id": "902553c7-38ba-44b3-ba01-f50f158ab647",
+      "id": "54319ab0-d8d1-4997-890b-5496ccfa1fa9",
       "name": "Aggregate"
     },
     {
@@ -441,7 +454,7 @@
         736,
         1360
       ],
-      "id": "f4478062-adde-4431-ba3b-570dcbce4956",
+      "id": "b7e0b25e-5d54-43af-835e-20fc5360967d",
       "name": "Switch1"
     },
     {
@@ -454,7 +467,7 @@
         848,
         352
       ],
-      "id": "1883ab2d-969f-425c-8978-adb6f75d7b8d",
+      "id": "42441d76-6a8e-47e5-b362-53dc3a3e1bbe",
       "name": "Code in JavaScript7"
     },
     {
@@ -467,7 +480,7 @@
         848,
         2240
       ],
-      "id": "8b201d6c-6c71-40cb-811d-7b20e8f7d571",
+      "id": "5076aff1-31d1-4272-88a1-56653daf2475",
       "name": "Code in JavaScript8"
     },
     {
@@ -479,10 +492,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1952,
-        2240
+        2176,
+        2224
       ],
-      "id": "79186cd2-b3d5-4bc2-a448-3b18f3d3d40f",
+      "id": "5ab25dc4-bf44-46c8-8819-d40dc44a716a",
       "name": "Execute a SQL query5",
       "alwaysOutputData": true,
       "credentials": {
@@ -499,10 +512,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2192,
-        2240
+        2432,
+        2224
       ],
-      "id": "56e35c96-7c1e-4408-a5b9-4110bba6d784",
+      "id": "90e70c6a-7c18-4ba3-9cd2-ff223a5fd885",
       "name": "Code in JavaScript6"
     },
     {
@@ -515,26 +528,8 @@
         1136,
         1376
       ],
-      "id": "ecd37b42-1df1-4bbe-8afd-8605c6ce7971",
+      "id": "f8150100-4f1c-4ca7-8fb1-1964f95f4219",
       "name": "Code in JavaScript9"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Dưới đây là `USER_REQUEST`, `SCHEMA`, và `PLAN` (dành cho chart) để thực thi.\n\nHãy tuân thủ quy trình \"Test-First\", sử dụng tool `[TEST_SQL_AGENT]` để kiểm tra logic SQL, sau đó tổng hợp và trả về đối tượng JSON HOÀN CHỈNH chứa `code` (Python) và `sql` (SQL hoàn chỉnh) theo `PLAN`.\n\n---\n## User Request (Yêu cầu gốc)\n{{ $json.user_input }}\n\n## Schema (Lược đồ DB)\n{{ $('Code in JavaScript9').item.json.schema }}\n\n## Plan (Kế hoạch thực thi)\n{{ $('Code in JavaScript9').item.json.plan.chart_plan }}\n\n## reference_date\n{{ $now.toISODate() }}\n---",
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "=BẠN LÀ MỘT CHUYÊN GIA TRỰC QUAN HÓA DỮ LIỆU BẰNG PYTHON (CHO STREAMLIT).\n\n**Đầu vào:** `PLAN`, `SCHEMA`, `USER_REQUEST`.\n\n**Đầu ra:** JSON gồm:\n{\n  \"sql\": \"<câu SQL không LIMIT>\",\n  \"code\": \"<code Python chạy bằng exec>\"\n}\nKhông thuộc tính bổ sung, không giải thích.\n\n---\n\n**TOOL BẮT BUỘC**\n- [TEST_SQL_AGENT(test_description: string, schema: string)] dùng để kiểm thử logic của SQL (join, filter, group, phép tính). Phải mô tả rõ điều cần kiểm tra.\n\n---\n\n**QUY TRÌNH BẮT BUỘC**\n\n1. **Phân tích:** Đọc kỹ `PLAN`, `SCHEMA`, `USER_REQUEST`. Nắm rõ mục tiêu biểu đồ, trường dữ liệu cần thiết, điều kiện lọc.\n\n2. **Soạn & Kiểm thử SQL:**\n   - Viết câu SQL đầy đủ, không LIMIT.\n   - Chủ động gọi `[TEST_SQL_AGENT]` cho từng phần quan trọng để kiểm tra kết quả trung gian. Nếu preview sai, chỉnh lại và test tiếp.\n   - Đảm bảo cột được đặt tên rõ ràng, tránh mơ hồ (ví dụ dùng alias `total_revenue`, `activity_date`…).\n   - SQL cuối cùng phải tương thích với pandas (ví dụ đặt tên cột không chứa ký tự lạ).\n\n3. **SQL cuối cùng:**\n   - Sau khi logic ổn, xuất câu SQL hoàn chỉnh vào trường `\"sql\"`.\n\n4. **Sinh Code Python (tuân thủ tuyệt đối các RULE):**\n   - **RULE 0:** Không dùng `return`, `plt.show()`, `plt.savefig()`, `st.*`, `display`.\n   - **RULE 1 (Imports):** Bắt buộc `import pandas as pd`, `import matplotlib.pyplot as plt`. Nếu dùng `Path`, import `from pathlib import Path`. Viết tất cả import bên trong code.\n   - **RULE 2 (Đọc dữ liệu):**\n     ```\n     if \"chart_file_path\" not in globals():\n         raise NameError(\"chart_file_path is required.\")\n     path = Path(chart_file_path)\n     if not path.exists():\n         raise FileNotFoundError(\"Không tìm thấy file dữ liệu cho biểu đồ.\")\n     df = pd.read_csv(path)\n     ```\n     - Không gán lại `chart_file_path`.\n     - Nếu cần Excel/parquet, tự kiểm tra phần mở rộng và dùng hàm đọc tương ứng.\n     - Xác thực dữ liệu: kiểm tra cột tồn tại (`required_columns = {...}`), ép kiểu nếu cần (`pd.to_datetime`, `astype(int)`…), xử lý NA trước khi vẽ.\n   - **RULE 3 (Biến trung gian):** Mọi series, danh sách, biến dùng trong plot phải được khai báo rõ. Tránh dùng biến chưa khởi tạo.\n   - **RULE 4 (Plot):**\n     - Tạo figure: `fig, ax = plt.subplots(...)`.\n     - Khi đặt tick/label, đảm bảo số tick == số label. Ví dụ:\n       ```\n       x_values = df[\"month\"].unique()\n       ax.set_xticks(range(len(x_values)))\n       ax.set_xticklabels([f\"Tháng {m}\" for m in x_values])\n       ```\n     - Không giả định dữ liệu chỉ có 1-2 điểm; luôn làm việc với số lượng linh hoạt.\n     - Định dạng trục y và số chú thích bằng `matplotlib.ticker` hoặc `FuncFormatter`.\n   - **RULE 5 (Hoàn tất):** `plt.tight_layout()` nếu cần, không thêm return. Đảm bảo `fig` tồn tại trong scope cuối cùng.\n\n5. **Đầu ra JSON:** \n   - Mã hóa bằng JSON thuần, không xuống dòng thừa trong key. Ví dụ:\n     ```\n     {\n       \"sql\": \"SELECT ...\",\n       \"code\": \"import pandas as pd\\n...\"\n     }\n     ```\n   - Chuỗi code dùng `\\n` cho xuống dòng.\n\n---\n\n**Lưu ý chung:**\n- SQL và code phải tương thích với nhau (cột SQL tạo ra phải khớp với các cột code sử dụng).\n- Không giả định giá trị cụ thể; xử lý dữ liệu linh hoạt.\n- Khi có khả năng dữ liệu rỗng, thêm nhánh xử lý (ví dụ: nếu `df.empty` thì tạo biểu đồ thông báo).\n- Không log/print trong code (trừ khi `raise` thông báo lỗi có ý nghĩa).\n- Ưu tiên đặt tên biến rõ ràng, tránh xung đột với tên built-in.\n"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        1536,
-        1376
-      ],
-      "id": "55d2c4c4-5278-4e46-8cfc-c8e2b2366523",
-      "name": "Agent Chart"
     },
     {
       "parameters": {
@@ -548,7 +543,7 @@
         1840,
         1616
       ],
-      "id": "f97bc311-efa2-4662-a363-fd57b66e6262",
+      "id": "27f29d9a-509a-4220-bc4c-427ec5c17e73",
       "name": "Structured Output Parser5"
     },
     {
@@ -560,10 +555,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
       "position": [
-        1536,
-        1872
+        1936,
+        1888
       ],
-      "id": "4444c3ba-5b4a-4aaa-bb48-d9b6f0ff1fd2",
+      "id": "8cda2f1b-5640-4b99-bcac-36fc63022de0",
       "name": "DeepSeek Chat Model8",
       "credentials": {
         "deepSeekApi": {
@@ -574,19 +569,19 @@
     },
     {
       "parameters": {
-        "toolDescription": "Đây là cách bạn \"mô tả\" agent trên như một tool cho agent \"Cha\".\n\nTên Tool: [TEST_SQL_AGENT]\n\nMô tả: \"Rất hữu ích để kiểm thử các phần của một truy vấn SQL trước khi viết câu lệnh cuối cùng. Tool này nhận một mô tả bằng ngôn ngữ tự nhiên về những gì cần kiểm tra (ví dụ: 'thử join bảng users và orders, đếm số đơn hàng của 5 user hàng đầu') và một schema. Nó sẽ tự động viết SQL, tự sửa lỗi, và trả về một bảng kết quả (data preview) đã được giới hạn (LIMIT 5 hoặc đã tổng hợp) để xác nhận logic.\"\n\nĐầu vào (Input):\n\ntest_description: (string) Mô tả bằng ngôn ngữ tự nhiên về logic SQL cần kiểm thử.\n\nschema: (string) Lược đồ cơ sở dữ liệu để agent tham chiếu.\n\nĐầu ra (Output): Một bảng JSON (dưới dạng string) chứa kết quả dữ liệu xem trước (preview).",
+        "toolDescription": "Tên Tool: [TEST_SQL_AGENT]\n\nMô tả: \"Công cụ BẮT BUỘC để kiểm thử logic SQL và xem trước dữ liệu trước khi viết truy vấn cuối cùng. Rất hữu ích để xác thực các phép JOIN phức tạp, các điều kiện WHERE hoặc xem trước kết quả của các phép tính (aggregation).\nTool này nhận một mô tả bằng ngôn ngữ tự nhiên (ví dụ: 'thử join users và orders, đếm 5 user đầu') và schema.\nNó sẽ tự động viết SQL (luôn có LIMIT 5 hoặc đã tổng hợp), tự sửa lỗi và trả về một bảng JSON (data preview).\n\nHãy SỬ DỤNG CÔNG CỤ NÀY để đảm bảo logic của bạn là chính xác trước khi tạo SQL hoàn chỉnh.\"",
         "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
         "options": {
-          "systemMessage": "=BẠN LÀ MỘT AGENT TRUY VẤN SQL KIỂM THỬ (SQL TEST AGENT).\n\n## Schema (Lược đồ DB)\n{{ $('Code in JavaScript9').item.json.schema }}\n\nNhiệm vụ của bạn là nhận một **mô tả yêu cầu (description)**, viết và thực thi một truy vấn SQL DUY NHẤT bằng tool `[QUERY_SQL]` để kiểm tra logic.\n\n**QUY TẮC BẮT BUỘC:**\n\n1.  **CHỈ `SELECT`:** Cấm tuyệt đối `INSERT`, `UPDATE`, `DELETE`, `DROP`.\n2.  **AN TOÀN KẾT QUẢ (RẤT QUAN TRỌNG):** Bạn KHÔNG được trả về hàng nghìn dòng dữ liệu thô. Truy vấn của bạn phải:\n    * **Ưu tiên hàng đầu** các hàm tổng hợp (`COUNT`, `SUM`, `AVG`, `MAX`, `MIN`) nếu mô tả yêu cầu (ví dụ: \"tổng doanh thu\", \"có bao nhiêu\").\n    * Nếu mô tả yêu cầu xem \"danh sách\" (ví dụ: \"xem thử 5 khách hàng\"), bạn BẮT BUỘC phải dùng `LIMIT 5`.\n    * Nếu mô tả không chỉ định, hãy mặc định `LIMIT 5`.\n3.  **TỰ ĐỘNG SỬA LỖI (Self-Correction):**\n    * Bạn PHẢI gọi tool `[QUERY_SQL]`.\n    * Nếu tool `[QUERY_SQL]` trả về **LỖI (Error)** (ví dụ: cú pháp sai, tên cột không tồn tại):\n        * Bạn KHÔNG ĐƯỢC dừng lại hay hỏi lại.\n        * Bạn PHẢI đọc kỹ lỗi, **sửa lại câu truy vấn SQL** của mình.\n        * Bạn PHẢI **gọi lại tool `[QUERY_SQL]`** với truy vấn đã sửa, lặp lại cho đến khi thành công.\n4.  **ĐẦU RA CUỐI CÙNG:**\n    * Sau khi `[QUERY_SQL]` chạy thành công, hãy trả về **dữ liệu kết quả (data result)** từ tool đó. Chỉ trả về dữ liệu (ví dụ: một JSON hoặc một con số), KHÔNG giải thích."
+          "systemMessage": "==BẠN LÀ AGENT KIỂM THỬ SQL AN TOÀN (SAFE SQL TEST AGENT).\n\n## Schema (Lược đồ DB)\n{{ $('Code in JavaScript9').item.json.schema }}\n\nNhiệm vụ của bạn là nhận một **mô tả yêu cầu (description)**, viết và thực thi một truy vấn SQL DUY NHẤT bằng tool `[QUERY_SQL]` để kiểm tra logic.\n\n**QUY TẮC BẮT BUỘC TUYỆT ĐỐI:**\n\n1.  **CHỈ `SELECT`:** Cấm tuyệt đối `INSERT`, `UPDATE`, `DELETE`, `DROP`.\n2.  **QUY TẮC VÀNG: AN TOÀN KẾT QUẢ:**\n    Bạn KHÔNG BAO GIỜ được trả về dữ liệu thô. Truy vấn của bạn PHẢI:\n    a) Ưu tiên các hàm tổng hợp (`COUNT`, `SUM`, `AVG`) nếu mô tả yêu cầu.\n    b) Nếu mô tả yêu cầu xem \"danh sách\" hoặc \"preview\", bạn BẮT BUỘC phải dùng `LIMIT 5`.\n    c) Nếu mô tả không rõ, MẶC ĐỊNH LÀ `LIMIT 5`.\n3.  **TỰ ĐỘNG SỬA LỖI (Self-Correction):**\n    * Bạn PHẢI gọi tool `[QUERY_SQL]`.\n    * Nếu `[QUERY_SQL]` trả về **LỖI (Error)**:\n        * Đọc kỹ lỗi, **sửa lại câu SQL** của mình.\n        * **Gọi lại tool `[QUERY_SQL]`** với truy vấn đã sửa.\n        * Lặp lại cho đến khi thành công.\n4.  **ĐẦU RA CUỐI CÙNG:**\n    * Sau khi `[QUERY_SQL]` chạy thành công, hãy trả về **dữ liệu kết quả (data result)** từ tool đó.\n    * KHÔNG GIẢI THÍCH, chỉ trả về dữ liệu (ví dụ: một JSON hoặc một con số)."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 2.2,
       "position": [
-        1552,
-        1616
+        1168,
+        1648
       ],
-      "id": "5017ba00-782b-41e2-8c91-089f506dd385",
+      "id": "47cc3812-022c-46da-b278-b61149700cee",
       "name": "TEST_SQL_AGENT1"
     },
     {
@@ -595,12 +590,12 @@
         "query": "{{ $fromAI('sql_statement') }}",
         "options": {}
       },
-      "id": "0d0d4b33-8a9c-4aa8-9c88-176e43f59e37",
+      "id": "f98b2dbc-4b60-496f-b242-8abf262ee82e",
       "name": "QUERY_SQL2",
       "type": "n8n-nodes-base.postgresTool",
       "position": [
-        1696,
-        1872
+        1312,
+        1840
       ],
       "typeVersion": 2.5,
       "credentials": {
@@ -618,9 +613,9 @@
       "typeVersion": 1,
       "position": [
         -512,
-        1728
+        1584
       ],
-      "id": "0615602b-31b1-4371-9782-5c3cf7d7c96e",
+      "id": "c8b23c0c-b076-4adc-83a1-0f32fe427e6b",
       "name": "DeepSeek Chat Model9",
       "credentials": {
         "deepSeekApi": {
@@ -641,7 +636,7 @@
         1952,
         1376
       ],
-      "id": "47c23448-9535-462d-ae8f-492075f52124",
+      "id": "4834d544-15fd-4da9-8d57-754a9b6e3a81",
       "name": "Execute a SQL query6",
       "credentials": {
         "postgres": {
@@ -652,7 +647,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Lấy tất cả item từ đầu vào\nconst items = $input.all();\n\n// Lấy code Python từ Agent Chart\nconst chartCode = $('Agent Chart').first().json.output.code;\n\n// === XỬ LÝ CSV ===\n\nlet fileDataUri = \"\"; // Đổi tên biến cho rõ ràng\n\n// Chỉ tạo file CSV nếu có dữ liệu\nif (items.length > 0) {\n  \n  // 1. Lấy tiêu đề (columns) từ item đầu tiên\n  const columns = Object.keys(items[0].json);\n\n  // 2. Lấy dữ liệu (rows)\n  const rows = items.map(item => {\n    return columns.map(colName => item.json[colName]);\n  });\n\n  // 3. Tạo chuỗi CSV\n  const csvString = [columns] // Nối tiêu đề\n    .concat(rows)             // Nối các dòng dữ liệu\n    .map(r => r.map(v => `\"${String(v ?? '').replace(/\"/g, '\"\"')}\"`).join(','))\n    .join('\\n');\n  \n  // 4. Chuyển sang Base64\n  const base64Data = Buffer.from(csvString, \"utf8\").toString(\"base64\");\n\n  // 5. SỬA LỖI CHUẨN: Thêm tiền tố (prefix) Data URI\n  fileDataUri = `data:text/csv;base64,${base64Data}`;\n\n} else {\n  console.log(\"Không có dữ liệu đầu vào để tạo file CSV.\");\n  fileDataUri = \"data:text/csv;base64,\"; // Trả về file rỗng\n}\n\n// === TRẢ VỀ KẾT QUẢ ===\n\nreturn [{\n  json: {\n    chart: {\n      code: chartCode,\n      file: {\n        filename: `filename_${$now.toFormat('yyyyMMdd_HHmmss')}.csv`,\n        data: fileDataUri // Trả về file Data URI chuẩn\n      }\n    }\n  }\n}];"
+        "jsCode": "// Lấy tất cả item từ đầu vào\nconst items = $input.all();\n\n// Lấy code Python từ Agent Chart\nconst chartCode = $('CHART').first().json.output.code;\n\n// === XỬ LÝ CSV ===\n\nlet fileDataUri = \"\"; // Đổi tên biến cho rõ ràng\n\n// Chỉ tạo file CSV nếu có dữ liệu\nif (items.length > 0) {\n  \n  // 1. Lấy tiêu đề (columns) từ item đầu tiên\n  const columns = Object.keys(items[0].json);\n\n  // 2. Lấy dữ liệu (rows)\n  const rows = items.map(item => {\n    return columns.map(colName => item.json[colName]);\n  });\n\n  // 3. Tạo chuỗi CSV\n  const csvString = [columns] // Nối tiêu đề\n    .concat(rows)             // Nối các dòng dữ liệu\n    .map(r => r.map(v => `\"${String(v ?? '').replace(/\"/g, '\"\"')}\"`).join(','))\n    .join('\\n');\n  \n  // 4. Chuyển sang Base64\n  const base64Data = Buffer.from(csvString, \"utf8\").toString(\"base64\");\n\n  // 5. SỬA LỖI CHUẨN: Thêm tiền tố (prefix) Data URI\n  fileDataUri = `data:text/csv;base64,${base64Data}`;\n\n} else {\n  console.log(\"Không có dữ liệu đầu vào để tạo file CSV.\");\n  fileDataUri = \"data:text/csv;base64,\"; // Trả về file rỗng\n}\n\n// === TRẢ VỀ KẾT QUẢ ===\n\nreturn [{\n  json: {\n    chart: {\n      code: chartCode,\n      file: {\n        filename: `filename_${$now.toFormat('yyyyMMdd_HHmmss')}.csv`,\n        data: fileDataUri // Trả về file Data URI chuẩn\n      }\n    }\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -660,7 +655,7 @@
         2160,
         1376
       ],
-      "id": "544617c0-3a04-443e-96a3-5b4e05216b44",
+      "id": "7db29986-7f0f-44e5-88b9-fbe9ba5f7029",
       "name": "Code in JavaScript10"
     },
     {
@@ -675,7 +670,7 @@
         1472,
         608
       ],
-      "id": "db142ad4-50b6-4666-9c0b-eeb057235b3c",
+      "id": "da726f9d-75f2-48b0-a029-34c874fe44e6",
       "name": "Structured Output Parser6"
     },
     {
@@ -690,7 +685,7 @@
         3424,
         1376
       ],
-      "id": "b6ca86b9-e404-44fd-9e75-a39abeabf563",
+      "id": "9ab06003-aa4c-425d-a887-81b2457b2e24",
       "name": "Respond to Webhook8"
     },
     {
@@ -703,8 +698,85 @@
         3072,
         1376
       ],
-      "id": "dc6e55e5-7649-4e2b-b802-aa969b9f651f",
+      "id": "27094d78-2fd2-4e74-9070-cbe440ac36a6",
       "name": "Code in JavaScript14"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        1840
+      ],
+      "id": "e17c4465-cfaa-4f7a-9a06-0ba6e9c99c52",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "ZMFdLOEKgqZNPOq6",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=#### 2. ⌨️ `text` (User Prompt)\n(Dán vào ô **Prompt** chính. Phần này giữ nguyên `PLAN` làm đầu vào, nhưng bỏ đi hướng dẫn \"sử dụng tool\").\n\n```text\n=**Yêu cầu gốc của người dùng (USER_REQUEST):**\n{{ $json.user_input }}\n\n## Schema (Lược đồ DB) \n{{ $('Code in JavaScript8').item.json.schema }}\n\n## Plan (Kế hoạch thực thi) \n{{ $('Code in JavaScript8').item.json.plan.table_plan }}\n\n**reference_date:** {{ $now.toISODate() }}\n\nHãy biên dịch trực tiếp `PLAN` trên thành một câu truy vấn SQL HOÀN CHỈNH duy nhất.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "==BẠN LÀ MỘT CHUYÊN GIA VIẾT SQL CẤP CAO (SENIOR SQL WRITER AGENT).\n\n**Nhiệm vụ:** Nhận một `PLAN`, `SCHEMA`. Nhiệm vụ của bạn là sử dụng tool [TEST_SQL_AGENT] để kiểm thử logic, sau đó viết một câu truy vấn SQL **hoàn chỉnh** và **chính xác** để tạo ra bảng dữ liệu cuối cùng.\n\n**TOOL CỦA BẠN:**\n* `[TEST_SQL_AGENT(test_description: string, schema: string)]`: Tool cho phép bạn kiểm thử các phần logic của SQL và xem trước dữ liệu (luôn LIMIT 5).\n\n---\n\n### QUY TRÌNH BẮT BUỘC (Workflow)\n\n**BƯỚC 1: ĐỌC & PHÂN TÍCH KẾ HOẠCH**\n* Đọc kỹ `PLAN` và `SCHEMA` để hiểu mục tiêu (Metrics, Dimensions, Filters, Joins).\n\n**BƯỚC 2: QUY TẮC SỬ DỤNG TOOL (RÕ RÀNG)**\nBạn PHẢI sử dụng tool `[TEST_SQL_AGENT]` ít nhất một lần nếu `PLAN` chứa bất kỳ điều nào sau đây:\n1.  **JOIN:** `PLAN` mô tả việc cần kết nối 2 hay nhiều bảng.\n2.  **SUB-QUERY:** `PLAN` ngụ ý một truy vấn con.\n3.  **HÀM PHỨC TẠP:** `PLAN` yêu cầu các hàm cửa sổ (Window functions) hoặc `CASE WHEN` phức tạp.\n\n* **Nếu `PLAN` đơn giản** (ví dụ: `SELECT COUNT(*)...`), bạn có thể bỏ qua Bước 2.\n\n**BƯỚC 3: TẠO SQL CUỐI CÙNG (Finalize)**\n* Dựa vào kết quả (data preview) từ tool (nếu có), hãy tạo câu truy vấn SQL **hoàn chỉnh** duy nhất.\n\n* **QUY TẮC VÀNG (ALIAS):** Bạn **BẮT BUỘC** phải sử dụng `AS` để đổi tên (alias) tất cả các cột tính toán (aggregate) (`SUM`, `COUNT`, `AVG`) thành tên có ý nghĩa, dễ đọc (ví dụ: `SUM(a.profit_value) AS total_profit`). Tên alias này PHẢI KHỚP với những gì `PLAN` mô tả.\n\n* **QUY TẮC LIMIT:** Câu truy vấn cuối cùng này phải tuân theo `PLAN` gốc (ví dụ: `LIMIT 100`, hoặc **không có LIMIT**). **KHÔNG** được tự ý thêm `LIMIT 5`.\n\n**BƯỚC 4: ĐỊNH DẠNG ĐẦU RA**\nBạn PHẢI trả về một đối tượng JSON duy nhất, hợp lệ. KHÔNG giải thích, không bình luận.\nCấu trúc JSON bắt buộc:\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"sql\": {\n      \"type\": \"string\",\n      \"description\": \"Câu truy vấn SQL hoàn chỉnh cuối cùng.\"\n    }\n  },\n  \"required\": [\"sql\"],\n  \"additionalProperties\": false\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1456,
+        2240
+      ],
+      "id": "58475cfc-a3c6-4246-9005-7cc721f09a56",
+      "name": "TABLE"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==Dưới đây là các tài nguyên để bạn thực hiện nhiệm vụ.\n\n## User Request (Yêu cầu gốc)\n{{ $json.user_input }}\n\n## Schema (Lược đồ DB)\n{{ $('Code in JavaScript9').item.json.schema }}\n\n## Plan (Kế hoạch thực thi)\n{{ $('Code in JavaScript9').item.json.plan.chart_plan }}\n\n## reference_date (Ngày tham chiếu)\n{{ $now.toISODate() }}\n\n---\n**Yêu cầu thực thi:**\nHãy làm theo quy trình Test-First. Sử dụng `[TEST_SQL_AGENT]` để kiểm tra logic.\nSau đó, tạo JSON đầu ra chứa `sql` (hoàn chỉnh) và `code` (Python).\n**Hãy sáng tạo!** Đừng chỉ tạo một biểu đồ cơ bản, hãy làm nó thật dễ hiểu và nổi bật theo \"Quy Tắc Sáng Tạo\".",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "==BẠN LÀ MỘT KIẾN TRÚC SƯ TRỰC QUAN HÓA DỮ LIỆU (DATA VISUALIZATION ARCHITECT).\n\n**Nhiệm vụ:** Nhận một `PLAN` và `SCHEMA`. Nhiệm vụ của bạn là (1) Viết SQL hoàn chỉnh để lấy dữ liệu, và (2) Viết code Python (dùng Matplotlib/Pandas) để tạo ra một biểu đồ SÁNG TẠO và CHÍNH XÁC, kể một câu chuyện bằng dữ liệu.\n\n**Đầu ra:** Chỉ trả về một đối tượng JSON duy nhất, hợp lệ theo schema:\n{ \"sql\": \"<câu SQL không LIMIT>\", \"code\": \"<code Python chạy bằng exec>\" }\n(Không giải thích, không markdown bên ngoài JSON, code Python dùng `\\n` để xuống dòng)\n\n---\n\n### QUY TẮC SÁNG TẠO (NÂNG CẤP BIỂU ĐỒ)\nĐừng chỉ làm theo `PLAN` một cách máy móc. Hãy NÂNG CẤP nó:\n1.  **Chọn loại biểu đồ tốt nhất:** Nếu `PLAN` gợi ý \"biểu đồ cột\" nhưng dữ liệu là chuỗi thời gian, hãy chủ động dùng \"biểu đồ đường (line chart)\". Nếu là so sánh tỷ lệ, hãy dùng \"thanh ngang (barh)\" hoặc \"tròn (pie)\" (nếu ít danh mục).\n2.  **Làm nổi bật (Highlight):** Nếu là biểu đồ đường, hãy thêm \"chú thích (annotation)\" cho điểm cao nhất/thấp nhất. Nếu là biểu đồ cột, hãy tô màu khác cho cột quan trọng nhất.\n3.  **Làm sạch (Cleanup):** Sử dụng `plt.tight_layout()`, thêm tiêu đề (`ax.set_title()`) rõ ràng, gán nhãn trục (`ax.set_xlabel()`, `ax.set_ylabel()`) dễ hiểu.\n4.  **Định dạng (Format):** Định dạng các số lớn trên trục (ví dụ: 1000000 -> 1M) bằng `matplotlib.ticker`.\n\n---\n\n### QUY TRÌNH BẮT BUỘC (Test-First Workflow)\n\n1.  **Phân tích (Analyze):** Đọc kỹ `PLAN` và `SCHEMA` để hiểu logic cần thiết (Metrics, Dimensions, Filters).\n2.  **Kiểm thử SQL (Test):**\n    * Suy nghĩ về câu SQL hoàn chỉnh.\n    * Trước khi chốt, hãy BẮT BUỘC sử dụng tool `[TEST_SQL_AGENT]` để kiểm tra các phần logic phức tạp (JOIN, WHERE, aggregation).\n    * Ví dụ: Gọi `[TEST_SQL_AGENT]` với mô tả: \"thử join bảng A và B, lọc theo ngày X, lấy 5 dòng\".\n    * Dựa vào kết quả (data preview) từ tool để xác nhận logic là đúng.\n3.  **Chốt SQL (Finalize SQL):**\n    * Sau khi đã tự tin về logic, viết câu truy vấn SQL **hoàn chỉnh** (không `LIMIT 5`, trừ khi `PLAN` yêu cầu `LIMIT`).\n    * Đặt tên cột rõ ràng bằng alias (ví dụ: `SUM(revenue) AS total_revenue`).\n    * Câu SQL này sẽ được điền vào trường `\"sql\"` của JSON đầu ra.\n4.  **Viết Code Python (Write Code):**\n    * Viết code Python để vẽ biểu đồ, giả định dữ liệu từ câu SQL trên đã được load vào biến `df`.\n    * Code này sẽ được điền vào trường `\"code\"` của JSON đầu ra.\n    * Bạn PHẢI tuân thủ các quy tắc code bên dưới.\n\n---\n\n### QUY TẮC CODE PYTHON (TUÂN THỦ TUYỆT ĐỐI ĐỂ TRÁNH LỖI)\n\n**RULE 0: CẤM TUYỆT ĐỐI**\n* KHÔNG dùng `return`.\n* KHÔNG dùng `plt.show()`, `plt.savefig()`, `st.*` (Streamlit), `display()`.\n* Biểu đồ cuối cùng phải được chứa trong biến `fig`.\n\n**RULE 1: Imports**\n* Tất cả `import` PHẢI được viết BÊN TRONG chuỗi code.\n* Bắt buộc: `import pandas as pd`, `import matplotlib.pyplot as plt`, `from pathlib import Path`.\n* Nếu cần: `import matplotlib.ticker as mtick`.\n\n**RULE 2: Đọc Dữ liệu (BẮT BUỘC)**\n* Code phải bắt đầu bằng khối kiểm tra file này (KHÔNG SỬA ĐỔI):\n    ```python\n    if \"chart_file_path\" not in globals():\n        raise NameError(\"Biến 'chart_file_path' là bắt buộc.\")\n    path = Path(chart_file_path)\n    if not path.exists():\n        raise FileNotFoundError(f\"Không tìm thấy file dữ liệu tại: {chart_file_path}\")\n    \n    # Giả định file là CSV\n    try:\n        df = pd.read_csv(path)\n    except Exception as e:\n        raise ValueError(f\"Lỗi khi đọc file CSV: {e}\")\n    \n    # Bắt buộc kiểm tra df rỗng\n    if df.empty:\n        fig, ax = plt.subplots()\n        ax.text(0.5, 0.5, 'Không có dữ liệu để hiển thị', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)\n        # KHÔNG return ở đây, để code chạy hết và biến fig tồn tại\n    else:\n        # Đặt code xử lý và vẽ biểu đồ của bạn BÊN TRONG khối else này\n    ```\n\n**RULE 3: Xử lý Dữ liệu (Bên trong `else`)**\n* Sau khi đọc `df`, bạn PHẢI kiểm tra và ép kiểu các cột cần thiết.\n* Ví dụ: `df['date_column'] = pd.to_datetime(df['date_column'])`, `df['numeric_column'] = pd.to_numeric(df['numeric_column'])`.\n* Xử lý giá trị `NaN` nếu cần thiết (`.fillna(0)` hoặc `dropna()`).\n* Các cột bạn dùng (ví dụ: `df['total_revenue']`) PHẢI KHỚP với tên cột (alias) trong câu SQL bạn đã viết.\n\n**RULE 4: Vẽ Biểu Đồ (Bên trong `else`)**\n* Luôn tạo figure và axes: `fig, ax = plt.subplots(figsize=(10, 6))`.\n* Thêm tiêu đề, nhãn trục rõ ràng (tham khảo Quy Tắc Sáng Tạo).\n* Định dạng trục (ví dụ: dùng `mtick.FuncFormatter` để định dạng tiền tệ hoặc phần trăm).\n* `plt.tight_layout()` được khuyến khích ở cuối."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1536,
+        1376
+      ],
+      "id": "eaca6fd9-76d7-4447-a38d-81dbbbb37697",
+      "name": "CHART"
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        560
+      ],
+      "id": "5783ee65-d1cb-434a-b741-f58e82da8cc9",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "RttnGPsjLKJtO7zH",
+          "name": "Tavily account"
+        }
+      }
     }
   ],
   "connections": {
@@ -796,6 +868,28 @@
         ]
       ]
     },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "RAG_METRIC",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG_METRIC": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent planner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "DeepSeek Chat Model5": {
       "ai_languageModel": [
         [
@@ -827,7 +921,7 @@
       "ai_tool": [
         [
           {
-            "node": "SQL Query Agent",
+            "node": "TEXT",
             "type": "ai_tool",
             "index": 0
           }
@@ -845,27 +939,11 @@
         ]
       ]
     },
-    "SQL Query Agent": {
-      "ai_tool": [
-        [
-          {
-            "node": "TEXT",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "DeepSeek Chat Model6": {
       "ai_languageModel": [
         [
           {
             "node": "TEXT",
-            "type": "ai_languageModel",
-            "index": 0
-          },
-          {
-            "node": "SQL Query Agent",
             "type": "ai_languageModel",
             "index": 0
           },
@@ -902,7 +980,7 @@
             "index": 0
           },
           {
-            "node": "SENIOR SQL WRITER AGENT",
+            "node": "TABLE",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -913,19 +991,8 @@
       "ai_tool": [
         [
           {
-            "node": "SENIOR SQL WRITER AGENT",
+            "node": "TABLE",
             "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "SENIOR SQL WRITER AGENT": {
-      "main": [
-        [
-          {
-            "node": "Execute a SQL query5",
-            "type": "main",
             "index": 0
           }
         ]
@@ -935,7 +1002,7 @@
       "ai_outputParser": [
         [
           {
-            "node": "SENIOR SQL WRITER AGENT",
+            "node": "TABLE",
             "type": "ai_outputParser",
             "index": 0
           }
@@ -1004,7 +1071,7 @@
       "main": [
         [
           {
-            "node": "SENIOR SQL WRITER AGENT",
+            "node": "TABLE",
             "type": "main",
             "index": 0
           }
@@ -1037,18 +1104,7 @@
       "main": [
         [
           {
-            "node": "Agent Chart",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Agent Chart": {
-      "main": [
-        [
-          {
-            "node": "Execute a SQL query6",
+            "node": "CHART",
             "type": "main",
             "index": 0
           }
@@ -1059,7 +1115,7 @@
       "ai_outputParser": [
         [
           {
-            "node": "Agent Chart",
+            "node": "CHART",
             "type": "ai_outputParser",
             "index": 0
           }
@@ -1070,17 +1126,12 @@
       "ai_languageModel": [
         [
           {
-            "node": "Agent Chart",
+            "node": "CHART",
             "type": "ai_languageModel",
             "index": 0
           },
           {
             "node": "Structured Output Parser5",
-            "type": "ai_languageModel",
-            "index": 0
-          },
-          {
-            "node": "TEST_SQL_AGENT1",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -1091,7 +1142,7 @@
       "ai_tool": [
         [
           {
-            "node": "Agent Chart",
+            "node": "CHART",
             "type": "ai_tool",
             "index": 0
           }
@@ -1164,6 +1215,50 @@
           {
             "node": "Respond to Webhook8",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "TEST_SQL_AGENT1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TABLE": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CHART": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "TEXT",
+            "type": "ai_tool",
             "index": 0
           }
         ]
