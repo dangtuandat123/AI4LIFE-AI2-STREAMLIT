@@ -46,14 +46,14 @@ def show_disclaimer_dialog():
 def clear_conversation():
     st.session_state.messages = []
     st.session_state.sid = str(uuid.uuid4())
-    st.session_state.prompt_text = ""
+    st.session_state.suggestion_seed = ""
+    st.session_state.chat_prompt = ""
     st.session_state.last_input_change = datetime.datetime.now()
     st.session_state.last_suggest_text = None
     st.session_state.last_suggest_timestamp = datetime.datetime.fromtimestamp(0)
     st.session_state.agent_suggestions = list(FALLBACK_SUGGESTIONS)
     st.session_state.suggestions_loading = False
     st.session_state.prefill_prompt = None
-    st.session_state.pending_prompt = None
 
 
 def parse_agent_suggestions(payload: Any) -> List[str]:
@@ -130,23 +130,13 @@ def refresh_agent_suggestions(query_text: str) -> None:
     st.session_state.last_suggest_timestamp = datetime.datetime.now()
 
 
-def handle_prompt_change() -> None:
-    """Records when the prompt text is edited manually."""
+def mark_suggestion_seed_changed() -> None:
+    """Records edits to the suggestion seed text."""
     st.session_state.last_input_change = datetime.datetime.now()
 
 
-def send_current_prompt() -> None:
-    """Captures the current prompt and clears the input box."""
-    trimmed = st.session_state.prompt_text.strip()
-    if not trimmed:
-        return
-    st.session_state.pending_prompt = trimmed
-    st.session_state.prompt_text = ""
-    st.session_state.last_input_change = datetime.datetime.now()
-
-
-def queue_prompt_prefill(text: str) -> None:
-    """Schedules a suggestion to be inserted into the prompt box."""
+def prefill_chat_input(text: str) -> None:
+    """Queues a suggestion to be inserted into the chat input box."""
     st.session_state.prefill_prompt = text
 
 
@@ -618,11 +608,11 @@ SESSION_DIR = ensure_session_dir(SESSION_ID)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "prompt_text" not in st.session_state:
-    st.session_state.prompt_text = ""
+if "suggestion_seed" not in st.session_state:
+    st.session_state.suggestion_seed = ""
 
-if "pending_prompt" not in st.session_state:
-    st.session_state.pending_prompt = None
+if "chat_prompt" not in st.session_state:
+    st.session_state.chat_prompt = ""
 
 if "prefill_prompt" not in st.session_state:
     st.session_state.prefill_prompt = None
@@ -643,7 +633,7 @@ if "last_input_change" not in st.session_state:
     st.session_state.last_input_change = datetime.datetime.now()
 
 now = datetime.datetime.now()
-current_prompt_value = st.session_state.prompt_text.strip()
+current_prompt_value = st.session_state.suggestion_seed.strip()
 
 if (
     st.session_state.last_suggest_text is None
@@ -712,43 +702,17 @@ for history_index, message in enumerate(st.session_state.messages):
                 st.error(message["error"])
 
 
-user_message: Optional[str] = None
-
-with st.container():
-    st.markdown("### Soạn câu hỏi của bạn")
-    if st.session_state.prefill_prompt:
-        st.session_state.prompt_text = st.session_state.prefill_prompt
-        st.session_state.prefill_prompt = None
-        st.session_state.last_input_change = datetime.datetime.now()
-    st.text_area(
-        "Nội dung câu hỏi",
-        key="prompt_text",
-        placeholder="Nhập yêu cầu hoặc mô tả dữ liệu bạn muốn phân tích...",
-        height=50,
-        label_visibility="collapsed",
-        on_change=handle_prompt_change,
-    )
-    trimmed_prompt = st.session_state.prompt_text.strip()
-    info_col, action_col = st.columns([4, 1], gap="small")
-    with info_col:
-        st.caption("Gợi ý sẽ tự cập nhật sau ~1 giây bạn ngừng nhập.")
-    with action_col:
-        st.button(
-            "Gửi",
-            key="send_prompt_button",
-            use_container_width=True,
-            type="primary",
-            disabled=not trimmed_prompt,
-            on_click=send_current_prompt,
-        )
-    pending = st.session_state.pending_prompt
-    if pending:
-        user_message = pending
-        st.session_state.pending_prompt = None
-
 st.divider()
 with st.container():
-    st.caption("Gợi ý từ Agent")
+    st.markdown("### Gợi ý từ Agent")
+    st.text_area(
+        "Nhập mô tả để lấy gợi ý",
+        key="suggestion_seed",
+        placeholder="Ví dụ: Phân tích doanh thu theo tháng, so sánh theo vùng...",
+        height=120,
+        on_change=mark_suggestion_seed_changed,
+    )
+    st.caption("Gợi ý sẽ tự cập nhật ~1 giây sau khi bạn dừng nhập.")
     with st.container(border=True):
         if st.session_state.suggestions_loading:
             st.caption("Đang cập nhật gợi ý dựa trên nội dung bạn nhập…")
@@ -757,7 +721,7 @@ with st.container():
             st.caption("Chưa có gợi ý phù hợp. Hãy nhập yêu cầu cụ thể hơn.")
         else:
             for idx, suggestion in enumerate(main_suggestions, start=1):
-                row_cols = st.columns([12, 3], gap="small")
+                row_cols = st.columns([12, 2], gap="small")
                 with row_cols[0]:
                     st.markdown(f":small[#{idx}] {suggestion}")
                 with row_cols[1]:
@@ -766,9 +730,14 @@ with st.container():
                         key=f"suggestion_insert_{idx}",
                         use_container_width=True,
                         type="secondary",
-                        on_click=lambda text=suggestion: queue_prompt_prefill(text),
+                        on_click=lambda text=suggestion: prefill_chat_input(text),
                     )
-    st.caption("Gợi ý sẽ tự cập nhật ~1 giây sau khi bạn dừng nhập.")
+
+if st.session_state.prefill_prompt:
+    st.session_state.chat_prompt = st.session_state.prefill_prompt
+    st.session_state.prefill_prompt = None
+
+user_message = st.chat_input("Nhập câu hỏi và nhấn Enter...", key="chat_prompt")
 
 if user_message:
     raw_prompt = user_message
