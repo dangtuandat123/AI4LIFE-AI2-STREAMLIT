@@ -421,7 +421,7 @@ def render_table(table: Dict[str, Any]) -> None:
     rows = table.get("rows")
 
     if not isinstance(columns, list) or not isinstance(rows, list):
-        st.info("Khong co du lieu bang de hien thi.")
+        st.info("Không có dữ liệu bảng để hiển thị.")
         return
 
     try:
@@ -432,7 +432,7 @@ def render_table(table: Dict[str, Any]) -> None:
     except ImportError:
         st.table(rows)
     except Exception as exc:
-        st.error(f"Loi hien thi bang: {exc}")
+        st.error(f"Lỗi hiển thị bảng: {exc}")
 
 
 def render_file(
@@ -442,13 +442,13 @@ def render_file(
     index: int,
 ) -> None:
     if "error" in file_info:
-        label = file_info.get("filename") or "Tep khong ro ten"
+        label = file_info.get("filename") or "Tệp không rõ tên"
         st.error(f"{label}: {file_info['error']}")
         return
 
     path = file_info.get("path")
     if isinstance(path, Path):
-        st.success(f"Da luu tep tai {path}")
+        st.success(f"Đã lưu tệp tại {path}")
 
     binary = file_info.get("bytes")
     if not isinstance(binary, (bytes, bytearray)):
@@ -456,7 +456,7 @@ def render_file(
 
     filename = file_info.get("filename") or f"tep_{index}.bin"
     mime = file_info.get("mime") or "application/octet-stream"
-    label = file_info.get("label") or f"Tai {filename}"
+    label = file_info.get("label") or f"Tải {filename}"
 
     st.download_button(
         label=label,
@@ -537,48 +537,48 @@ user_first_interaction = user_just_asked_initial_question or user_just_clicked_s
 has_message_history = len(st.session_state.messages) > 0
 
 with st.sidebar:
-    st.subheader("Bang dieu khien")
-    st.caption("Chatbot nay gui cau hoi den webhook n8n ben duoi.")
+    st.subheader("Bảng điều khiển")
+    st.caption("Chatbot này gửi câu hỏi đến webhook n8n bên dưới.")
     st.code(WEBHOOK_URL, language="text")
-    st.text_input("Session ID", value=SESSION_ID, disabled=True)
-    st.metric("So tin nhan", len(st.session_state.messages))
+    st.text_input("Mã phiên", value=SESSION_ID, disabled=True)
+    st.metric("Số tin nhắn", len(st.session_state.messages))
     st.sidebar.button(
-        ":material/balance: Thong tin phap ly",
+        ":material/balance: Thông tin pháp lý",
         key="sidebar_disclaimer",
         use_container_width=True,
         on_click=show_disclaimer_dialog,
         type="secondary",
     )
     st.sidebar.button(
-        ":material/refresh: Tao session moi",
+        ":material/refresh: Tạo phiên mới",
         key="sidebar_restart",
         use_container_width=True,
         on_click=clear_conversation,
     )
     st.sidebar.divider()
-    st.markdown("### Goi y nhanh")
+    st.markdown("### Gợi ý nhanh")
     for label, prompt in SUGGESTIONS.items():
         st.markdown(f"- {label}\n\n:small[{prompt}]")
     st.sidebar.divider()
     st.caption(
-        "Ban co the su dung cac nut nhanh de khoi tao cau hoi hoac bam Restart "
-        "de lam moi hoan toan phien chat."
+        "Bạn có thể sử dụng các nút nhanh để khởi tạo câu hỏi hoặc bấm "
+        "Khởi động lại để làm mới hoàn toàn phiên chat."
     )
 
 if not user_first_interaction and not has_message_history:
     st.session_state.messages = []
 
     with st.container():
-        st.chat_input("Nhap cau hoi dau tien...", key="initial_question")
+        st.chat_input("Nhập câu hỏi đầu tiên...", key="initial_question")
         st.pills(
-            label="Vi du",
+            label="Ví dụ",
             label_visibility="collapsed",
             options=list(SUGGESTIONS.keys()),
             key="selected_suggestion",
         )
 
     st.button(
-        "&nbsp;:small[:gray[:material/balance: Thong tin phap ly]]",
+        "&nbsp;:small[:gray[:material/balance: Thông tin pháp lý]]",
         type="tertiary",
         on_click=show_disclaimer_dialog,
     )
@@ -606,7 +606,7 @@ for history_index, message in enumerate(st.session_state.messages):
                 st.error(message["error"])
 
 
-user_message = st.chat_input("Nhap cau hoi tiep theo...")
+user_message = st.chat_input("Nhập câu hỏi tiếp theo...")
 message_source: Optional[str] = None
 
 if not user_message:
@@ -639,28 +639,28 @@ if user_message:
     assistant_container = st.chat_message("assistant")
     with assistant_container:
         status_placeholder = st.empty()
-        status_placeholder.markdown("Dang soan phan hoi...")
+        status_placeholder.markdown("Đang soạn phản hồi...")
 
         reply_payload: Optional[Dict[str, Any]] = None
         error_message: Optional[str] = None
 
-        with st.spinner("Dang cho phan hoi tu webhook..."):
+        with st.spinner("Đang chờ phản hồi từ webhook..."):
             try:
                 response = requests.post(WEBHOOK_URL, json=payload_request, timeout=300)
                 response.raise_for_status()
                 data = response.json()
                 reply_payload = build_payload(data, SESSION_DIR)
             except requests.exceptions.RequestException as exc:
-                error_message = f"Loi goi webhook: {exc}"
+                error_message = f"Lỗi gọi webhook: {exc}"
             except ValueError:
-                error_message = "Phan hoi webhook khong hop le (khong phai JSON)."
+                error_message = "Phản hồi webhook không hợp lệ (không phải JSON)."
             except Exception as exc:
-                error_message = f"Loi khong xac dinh: {exc}"
+                error_message = f"Lỗi không xác định: {exc}"
 
         if reply_payload is None or not any(
             reply_payload.get(key) for key in ("text", "charts", "tables", "files")
         ):
-            fallback_text = error_message or "Khong nhan duoc phan hoi tu webhook."
+            fallback_text = error_message or "Không nhận được phản hồi từ webhook."
             reply_payload = {
                 "types": ["text"],
                 "text": [fallback_text],
