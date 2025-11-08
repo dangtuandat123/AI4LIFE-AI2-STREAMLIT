@@ -15,7 +15,7 @@ import streamlit as st
 WEBHOOK_URL = "https://chatgpt.id.vn/webhook-test/70ecee2a-c278-461f-a898-52ff907b4fb2"
 AGENT_SUGGEST_WEBHOOK_URL = "https://chatgpt.id.vn/webhook/agent-suggest"
 
-SUGGESTIONS_DEBOUNCE_SECONDS = 1.0
+SUGGESTIONS_DEBOUNCE_SECONDS = 0.5
 
 FALLBACK_SUGGESTIONS = [
     "n8n là gì và cách bắt đầu một workflow đơn giản?",
@@ -141,7 +141,7 @@ def prefill_chat_input(text: str) -> None:
 
 
 with title_row:
-    st.title("Chat với n8n (webhook)", anchor=False, width="stretch")
+    st.title("BeeBox", anchor=False, width="stretch")
     st.button(
         "Khởi động lại",
         icon=":material/refresh:",
@@ -709,7 +709,7 @@ with st.container():
         "Nhập mô tả để lấy gợi ý",
         key="suggestion_seed",
         placeholder="Ví dụ: Phân tích doanh thu theo tháng, so sánh theo vùng...",
-        height=120,
+        height=100,
         on_change=mark_suggestion_seed_changed,
     )
     st.caption("Gợi ý sẽ tự cập nhật ~1 giây sau khi bạn dừng nhập.")
