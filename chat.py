@@ -36,6 +36,7 @@ SUGGESTION_BADGE_PALETTE = [
 ]
 
 GENERIC_ERROR_MESSAGE = "Không thể thực hiện ngay lúc này."
+ASSISTANT_AVATAR = "🐝"
 
 st.set_page_config(page_title="Chat với n8n", page_icon="✨")
 
@@ -722,7 +723,8 @@ with st.sidebar:
 
 for history_index, message in enumerate(st.session_state.messages):
     role = message.get("role", "assistant")
-    with st.chat_message(role):
+    avatar = ASSISTANT_AVATAR if role == "assistant" else None
+    with st.chat_message(role, avatar=avatar):
         if role == "user":
             st.markdown(message.get("content", ""))
         else:
@@ -788,7 +790,7 @@ if user_message:
 
     payload_request = {"text": raw_prompt, "session_id": SESSION_ID}
 
-    assistant_container = st.chat_message("assistant")
+    assistant_container = st.chat_message("assistant", avatar=ASSISTANT_AVATAR)
     with assistant_container:
         status_placeholder = st.empty()
         status_placeholder.markdown("Đang soạn phản hồi...")

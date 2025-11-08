@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full bg-gray-100"> <!-- Nền xám nhạt hơn -->
+<html lang="vi" class="h-full bg-gray-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,28 +8,28 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .log-entry { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }
-        .log-entry p { margin: 0; }
-        .log-entry .pass { color: #16a34a; }
-        .log-entry .fail { color: #dc2626; }
-        .log-entry .info { color: #2563eb; }
-        .notification {
-            animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        /* Lớp CSS mới để làm nổi bật input */
+        /* Lớp CSS cho input nổi bật khi focus */
         .highlight-input {
             @apply mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm transition duration-150 ease-in-out;
             @apply focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 focus:border-blue-500;
+        }
+        /* Lớp CSS cho log */
+        .log-entry { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #4b5563; }
+        .log-entry p { margin: 0; }
+        .log-entry .pass { color: #22c55e; } /* Xanh lá cây sáng */
+        .log-entry .fail { color: #ef4444; } /* Đỏ sáng */
+        .log-entry .info { color: #3b82f6; } /* Xanh dương sáng */
+        /* Animation cho thông báo */
+        .notification { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body class="h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl w-full space-y-8"> <!-- Tăng độ rộng tối đa -->
-        <h1 class="text-3xl font-bold text-center text-gray-900">Giả lập Báo cáo Hoạt động</h1>
+        <h1 class="text-3xl font-bold text-center text-gray-900">Giả lập Báo cáo Hoạt động (AI-Powered)</h1>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- CỘT 1: FORM NHẬP LIỆU -->
@@ -41,10 +41,13 @@
                         <div class="space-y-3 mt-2">
                             <div>
                                 <label for="requestName" class="block text-sm font-medium text-gray-700">Tên hoạt động</label>
-                                <!-- Áp dụng lớp highlight-input -->
-                                <input type="text" id="requestName" value="Hội thảo khách hàng TPHCM T12/2026" class="highlight-input">
-                                <!-- NÂNG CẤP: Container cho AI Suggestion rõ ràng hơn -->
-                                <div id="aiSuggestion" class="mt-2"></div>
+                                <input type="text" style="width: 100%;" id="requestName" value="Hội thảo khách hàng TPHCM T12/2026" class="highlight-input">
+                                <!-- AI Co-pilot Suggestion Box -->
+                                <div id="aiSuggestion" class="mt-2 space-y-2"></div>
+                            </div>
+                            <div>
+                                <label for="guestCount" class="block text-sm font-medium text-gray-700">Số lượng khách dự kiến</label>
+                                <input type="number" id="guestCount" value="100" class="highlight-input" title="AI sẽ dùng số này để chia chi phí quà tặng">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Tổng ngân sách xin (Tự động)</label>
@@ -55,34 +58,30 @@
 
                     <!-- Chi tiết Hạng mục -->
                     <fieldset class="border-t pt-4">
-                        <legend class="text-lg font-medium text-gray-900">2. Chi tiết Hạng mục</legend>
+                        <legend class="text-lg font-medium text-gray-900">2. Chi tiết Hạng mục (Budget_Item)</legend>
                         
                         <!-- List container -->
                         <div id="budgetItemsList" class="space-y-2 mt-2">
                             <!-- Các hạng mục động sẽ được render ở đây -->
                         </div>
                         
-                        <div id="giftWarning" class="text-right text-sm font-medium mt-2"></div>
-
                         <!-- Form to add new item -->
-                        <div class="mt-4 pt-4 border-t space-y-3"> <!-- Tăng space-y -->
-                            <h4 class="text-sm font-medium">Thêm hạng mục mới</h4>
-                            <div class="flex space-x-2">
-                                <!-- Áp dụng lớp highlight-input -->
-                                <input type="text" id="newItemName" placeholder="Tên hạng mục (vd: Quà tặng (100 người))" class="highlight-input flex-1 min-w-0">
-                                <input type="number" id="newItemAmount" placeholder="Số tiền" class="highlight-input w-32">
+                        <div class="mt-4 pt-4 border-t space-y-2">
+                            <h4 class="font-medium text-gray-700">Thêm hạng mục mới</h4>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" id="newItemName" placeholder="Tên hạng mục (vd: Quà tặng)" class="highlight-input flex-grow">
+                                <input type="number" id="newItemAmount" placeholder="Số tiền" class="highlight-input sm:w-1/3">
                             </div>
-                            <!-- Nâng cấp nút "+ Thêm" -->
-                            <button type="button" id="addItemBtn" class="w-full text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md py-2 transition duration-150">
+                            <button type="button" id="addItemBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                 + Thêm hạng mục
                             </button>
-                            <div id="addItemError" class="text-sm text-red-600 font-medium h-5"></div>
+                            <div id="addItemError" class="text-sm text-red-600 text-center h-4"></div>
                         </div>
                     </fieldset>
                     
                     <!-- Nút hành động -->
                     <div class="border-t pt-4">
-                        <button type="button" id="submitBtn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                        <button type="button" id="submitBtn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                             Gửi duyệt (AI Agent sẽ kiểm tra)
                         </button>
                     </div>
@@ -93,10 +92,10 @@
             <div class="bg-gray-800 text-white p-8 shadow-xl rounded-lg border border-gray-700">
                 <h2 class="text-xl font-semibold mb-4 text-yellow-400">Nhật ký AI "Gatekeeper"</h2>
                 <div id="logPanel" class="h-64 overflow-y-auto bg-gray-900 p-4 rounded-md font-mono text-sm space-y-2">
-                    <p class="text-gray-400">Đang chờ đề xuất...</p>
+                    <p class="text-gray-400">Đang chờ tín hiệu...</p>
                 </div>
                 
-                <h2 class="text-xl font-semibold mt-6 mb-4 text-cyan-400">Thông báo (Tới Sales / Quản lý)</h2>
+                <h2 class="text-xl font-semibold mt-6 mb-4 text-cyan-400">Thông báo cho Người dùng</h2>
                 <div id="notificationPanel" class="h-48 bg-gray-900 p-4 rounded-md space-y-3">
                     <p class="text-gray-400">Chưa có thông báo...</p>
                 </div>
@@ -105,7 +104,9 @@
     </div>
 
     <script>
-        // --- GIẢ LẬP DATABASE (CHO GATEKEEPER) ---
+        // --- GIẢ LẬP DATABASE ---
+        
+        // Bảng Annual_Budget (Ví tổng)
         const annualBudgetDB = {
             '5': { 
                 category: "Hội thảo khách hàng",
@@ -113,329 +114,310 @@
             }
         };
         
+        // Bảng Policy_Rule (Quy định)
         const policyRuleDB = {
             "dinh_muc_qua_tang": 300000, // 300.000 VNĐ
-            "hang_muc_cam": ["rượu", "bia", "thuốc lá"]
+            "hang_muc_cam": ["rượu", "bia", "thuốc lá"] // Hạng mục cấm (lowercase)
         };
 
-        // --- MỚI: GIẢ LẬP DATABASE LỊCH SỬ (CHO CO-PILOT) ---
+        // Bảng lịch sử (Cho AI Co-pilot)
         const pastRequestsDB = [
-            { name: "Hội thảo khách hàng Hà Nội T6/2026", totalBudget: 75000000 },
-            { name: "Hội thảo Sống Khỏe Cần Thơ T9/2026", totalBudget: 50000000 },
-            { name: "Tri ân khách hàng VIP TPHCM 2025", totalBudget: 120000000 }
+            { name: "Hội thảo Hà Nội 2025", budget: 110000000, category: "hội thảo", status: "Approved", comment: null },
+            { name: "Event Đà Nẵng", budget: 90000000, category: "hội thảo", status: "Approved", comment: null },
+            { name: "Hội thảo TPHCM Q1 2025", budget: 150000000, category: "hội thảo", status: "Rejected", comment: "Chi phí quà tặng vượt định mức." },
+            { name: "Tri ân khách hàng VIP", budget: 150000000, category: "tri ân", status: "Approved", comment: null },
+            { name: "Hội thảo Cần Thơ", budget: 70000000, category: "hội thảo", status: "Rejected", comment: "Thiếu báo giá địa điểm." }
         ];
-        
-        // --- TRẠNG THÁI CỦA FORM ---
-        // Dữ liệu ban đầu
+
+        // --- DỮ LIỆU ĐỘNG CHO BUDGET ITEMS ---
         let budgetItemsData = [
             { id: 1, name: "Thuê hội trường", amount: 30000000, editable: false },
-            { id: 2, name: "Tea-break (100 người)", amount: 15000000, editable: false },
-            { id: 3, name: "Quà tặng (100 người)", amount: 35000000, editable: true } // Cho phép sửa quà tặng
+            { id: 2, name: "Tea-break", amount: 15000000, editable: false },
+            { id: 3, name: "Quà tặng", amount: 35000000, editable: true } // Dữ liệu sai ban đầu
         ];
-        let nextId = 4;
-
+        
         // --- Lấy các DOM Elements ---
+        const submitBtn = document.getElementById('submitBtn');
         const logPanel = document.getElementById('logPanel');
         const notificationPanel = document.getElementById('notificationPanel');
-        const submitBtn = document.getElementById('submitBtn');
-        
         const budgetItemsList = document.getElementById('budgetItemsList');
         const addItemBtn = document.getElementById('addItemBtn');
         const newItemName = document.getElementById('newItemName');
         const newItemAmount = document.getElementById('newItemAmount');
         const totalBudgetInput = document.getElementById('totalBudget');
-        const giftWarning = document.getElementById('giftWarning'); // Đã xóa logic, chỉ giữ lại để không lỗi
-        const addItemError = document.getElementById('addItemError'); // Lấy div lỗi
-        
-        // MỚI: Lấy element cho Co-pilot
+        const addItemError = document.getElementById('addItemError');
+        const guestCountInput = document.getElementById('guestCount');
         const requestNameInput = document.getElementById('requestName');
         const aiSuggestion = document.getElementById('aiSuggestion');
         
-        // --- SỬA LỖI: Thêm biến cho Debounce Timer ---
-        let debounceTimer;
+        let debounceTimer; // Timer cho AI Co-pilot
 
         // --- CÁC HÀM QUẢN LÝ HẠNG MỤC ---
 
-        // Tính lại tổng và render
-        function renderBudgetItems() {
-            budgetItemsList.innerHTML = '';
-            let currentTotal = 0;
-            
-            budgetItemsData.forEach(item => {
-                currentTotal += item.amount;
-                
-                let itemHTML = `
-                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
-                        <span class="text-sm">${item.name}</span>
-                        <div class="flex items-center space-x-2">
-                `;
-                
-                // Nếu là hạng mục "Quà tặng", cho phép sửa số tiền
-                if (item.editable) {
-                    itemHTML += `
-                        <input type="number" value="${item.amount}" data-id="${item.id}" 
-                               class="item-amount-input highlight-input w-28 text-right px-2 py-1">
-                    `;
-                } else {
-                    itemHTML += `<span class="font-medium text-sm">${item.amount.toLocaleString('vi-VN')}</span>`;
-                }
-                
-                itemHTML += `
-                            <button data-id="${item.id}" class="delete-item-btn text-red-500 hover:text-red-700 transition duration-150" title="Xóa">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                budgetItemsList.innerHTML += itemHTML;
-            });
-            
-            // Cập nhật tổng
-            totalBudgetInput.value = currentTotal.toLocaleString('vi-VN');
-            
-            // Gắn lại event listener cho các nút/input vừa tạo
-            attachItemListeners();
+        function calculateTotalBudget() {
+            const total = budgetItemsData.reduce((sum, item) => sum + item.amount, 0);
+            totalBudgetInput.value = total.toLocaleString('vi-VN');
         }
 
-        // Gắn listeners cho các nút/input động
-        function attachItemListeners() {
-            // Nút Xóa
+        function renderBudgetItems() {
+            budgetItemsList.innerHTML = ''; // Xóa list cũ
+            
+            budgetItemsData.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex justify-between items-center p-2 bg-gray-50 rounded-md border';
+                
+                let amountHTML = '';
+                // Hạng mục có thể sửa số tiền nếu 'editable' là true
+                if (item.editable) {
+                    amountHTML = `<input type="number" value="${item.amount}" 
+                                         data-id="${item.id}" 
+                                         class="item-amount-input sm:w-1/3 w-2/5 text-right rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">`;
+                } else {
+                    amountHTML = `<span class="font-medium text-gray-900">${item.amount.toLocaleString('vi-VN')}</span>`;
+                }
+
+                itemEl.innerHTML = `
+                    <span class="text-gray-700 text-sm truncate pr-2">${item.name}</span>
+                    <div class="flex items-center gap-2">
+                        ${amountHTML}
+                        <button type"button" data-id="${item.id}" class="delete-item-btn text-red-500 hover:text-red-700 font-bold text-lg" title="Xóa">&times;</button>
+                    </div>
+                `;
+                budgetItemsList.appendChild(itemEl);
+            });
+
+            // Gắn event listener cho các nút/input vừa tạo
             document.querySelectorAll('.delete-item-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const id = parseInt(e.currentTarget.getAttribute('data-id'));
-                    handleDeleteItem(id);
-                });
+                btn.addEventListener('click', handleDeleteItem);
             });
-            
-            // Input sửa số tiền (cho Quà tặng)
             document.querySelectorAll('.item-amount-input').forEach(input => {
-                input.addEventListener('change', (e) => {
-                    const id = parseInt(e.currentTarget.getAttribute('data-id'));
-                    const newAmount = parseInt(e.currentTarget.value) || 0;
-                    handleUpdateItemAmount(id, newAmount);
-                });
+                input.addEventListener('input', handleUpdateItemAmount);
             });
+
+            calculateTotalBudget(); // Tính lại tổng
         }
-        
-        // Thêm hạng mục
-        function handleAddItem() {
-            const name = newItemName.value.trim();
-            const amount = parseInt(newItemAmount.value) || 0;
-            
-            // Kiểm tra lỗi (thay cho alert)
-            if (!name || amount <= 0) {
-                addItemError.textContent = 'Vui lòng nhập Tên và Số tiền hợp lệ.';
-                return;
-            }
-            addItemError.textContent = ''; // Xóa lỗi nếu OK
-            
-            budgetItemsData.push({
-                id: nextId++,
-                name: name,
-                amount: amount,
-                editable: false // Hạng mục mới thêm vào không cho edit trực tiếp
-            });
-            
-            // Xóa input
-            newItemName.value = '';
-            newItemAmount.value = '';
-            
-            renderBudgetItems();
-        }
-        
-        // Xóa hạng mục
-        function handleDeleteItem(id) {
+
+        function handleDeleteItem(event) {
+            const id = parseInt(event.currentTarget.dataset.id);
             budgetItemsData = budgetItemsData.filter(item => item.id !== id);
             renderBudgetItems();
         }
-        
-        // Cập nhật số tiền
-        function handleUpdateItemAmount(id, newAmount) {
+
+        function handleUpdateItemAmount(event) {
+            const id = parseInt(event.currentTarget.dataset.id);
+            const newAmount = parseFloat(event.currentTarget.value) || 0;
             const item = budgetItemsData.find(item => item.id === id);
             if (item) {
                 item.amount = newAmount;
             }
+            calculateTotalBudget();
+        }
+
+        function handleAddItem() {
+            const name = newItemName.value.trim();
+            const amount = parseFloat(newItemAmount.value) || 0;
+            addItemError.textContent = ''; // Xóa lỗi cũ
+            
+            if (!name || amount === 0) {
+                addItemError.textContent = "Vui lòng nhập tên và số tiền hợp lệ.";
+                return;
+            }
+            
+            const newId = (budgetItemsData.length > 0 ? Math.max(...budgetItemsData.map(i => i.id)) : 0) + 1;
+            
+            budgetItemsData.push({
+                id: newId,
+                name: name,
+                amount: amount,
+                // Tự động cho phép sửa nếu tên chứa "Quà tặng"
+                editable: name.toLowerCase().includes("quà")
+            });
+            
+            newItemName.value = '';
+            newItemAmount.value = '';
             renderBudgetItems();
         }
+
+        // --- HÀM AI CO-PILOT ---
+
+        function runAICopilot() {
+            const query = requestNameInput.value.toLowerCase();
+            aiSuggestion.innerHTML = ''; // Xóa gợi ý cũ
+
+            if (query.includes("hội thảo")) {
+                let suggestionHTML = '';
+                
+                // 1. Gợi ý ngân sách (từ các ca 'Approved')
+                const approvedEvents = pastRequestsDB.filter(e => e.category === "hội thảo" && e.status === "Approved");
+                if (approvedEvents.length > 0) {
+                    const avgBudget = approvedEvents.reduce((sum, e) => sum + e.budget, 0) / approvedEvents.length;
+                    suggestionHTML += `
+                        <div class="notification p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <h4 class="font-bold text-blue-800">💡 Gợi ý từ AI Co-pilot:</h4>
+                            <p class="text-sm text-blue-700">Các "Hội thảo" tương tự (đã duyệt) có ngân sách trung bình là ${avgBudget.toLocaleString('vi-VN')}đ.</p>
+                        </div>
+                    `;
+                }
+
+                // 2. Cảnh báo (từ các ca 'Rejected')
+                const rejectedEvents = pastRequestsDB.filter(e => e.category === "hội thảo" && e.status === "Rejected");
+                if (rejectedEvents.length > 0) {
+                    // Lấy lý do từ chối duy nhất
+                    const uniqueReasons = [...new Set(rejectedEvents.map(e => e.comment))];
+                    let reasonsHTML = uniqueReasons.map(reason => `<li class="text-sm text-yellow-800">- ${reason}</li>`).join('');
+
+                    suggestionHTML += `
+                        <div class="notification p-3 bg-yellow-50 border border-yellow-200 rounded-md mt-2">
+                            <h4 class="font-bold text-yellow-900">⚠️ Cảnh báo từ AI (Lỗi thường gặp):</h4>
+                            <p class="text-sm text-yellow-800">Các "Hội thảo" trước đây thường bị quản lý từ chối vì:</p>
+                            <ul class="list-disc list-inside ml-4 mt-1">
+                                ${reasonsHTML}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                aiSuggestion.innerHTML = suggestionHTML;
+            }
+        }
         
-        // --- SỬA LỖI: Thêm hàm Debounce ---
-        /**
-         * Chờ người dùng gõ xong mới chạy hàm
-         * @param {Function} func Hàm cần chạy
-         * @param {number} delay Thời gian chờ (ms)
-         */
-        function debounce(func, delay = 300) {
+        // Hàm Debounce
+        function debounce(func, delay) {
             return function(...args) {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
                     func.apply(this, args);
                 }, delay);
-            }
+            };
         }
 
-        // --- HÀM MỚI: AI CO-PILOT (GỢI Ý) ---
-        function runAICopilot() {
-            const eventName = requestNameInput.value.toLowerCase();
-            aiSuggestion.innerHTML = ''; // Xóa gợi ý cũ
-
-            // Nếu tên chứa "hội thảo", tìm các "hội thảo" cũ
-            if (eventName.includes('hội thảo')) {
-                const similarRequests = pastRequestsDB.filter(req => req.name.toLowerCase().includes('hội thảo'));
-                
-                if (similarRequests.length > 0) {
-                    const avgBudget = similarRequests.reduce((sum, req) => sum + req.totalBudget, 0) / similarRequests.length;
-                    // Làm tròn cho đẹp
-                    const roundedBudget = Math.round(avgBudget / 1000000) * 1000000; 
-                    
-                    // NÂNG CẤP: Giao diện gợi ý rõ ràng hơn
-                    aiSuggestion.innerHTML = `
-                        <div class="notification p-3 bg-blue-50 border border-blue-200 rounded-md flex items-start space-x-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.636 6.364l-.707-.707M12 21v-1m6.364-6.364l-.707-.707M3.636 3.636l.707.707" />
-                            </svg>
-                            <div>
-                                <h4 class="text-sm font-medium text-blue-700">Gợi ý từ AI Co-pilot</h4>
-                                <p class="text-sm text-blue-600">Các "hội thảo" tương tự có ngân sách TB là <strong>${roundedBudget.toLocaleString('vi-VN')}đ</strong>.</p>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-            // (Bạn có thể thêm các "if" khác cho "tri ân", "workshop"...)
-        }
-
-        // --- HÀM CHÍNH: AI "GATEKEEPER" (KIỂM TRA) ---
+        // --- HÀM AI GATEKEEPER ---
         
         function runAIAgent() {
             logPanel.innerHTML = '<p class="text-yellow-400">Đã nhận Request. Bắt đầu quét...</p>';
             notificationPanel.innerHTML = '';
             
             let errors = [];
-            let currentTotal = 0;
-            budgetItemsData.forEach(item => { currentTotal += item.amount; });
 
-            // --- KIỂM TRA 1: Ngân sách tổng (Bảng Annual_Budget) ---
+            // Lấy dữ liệu đầu vào TỪ MẢNG DỮ LIỆU
+            const totalRequested = budgetItemsData.reduce((sum, item) => sum + item.amount, 0);
+            const giftItem = budgetItemsData.find(item => item.name.toLowerCase().includes("quà"));
+            const numGuests = parseInt(guestCountInput.value) || 1;
+            const annualBudgetID = '5'; // ID "ví"
+            
+            // --- KIỂM TRA 1: NGÂN SÁCH TỔNG (Annual_Budget) ---
             let check1_log = `<p>Kiểm tra 1: Ngân sách tổng (Bảng Annual_Budget)...</p>`;
-            const budget = annualBudgetDB['5'];
-            if (currentTotal <= budget.amountRemaining) {
-                check1_log += `<p class="pass ml-4">✅ PASS: Ngân sách xin (${currentTotal.toLocaleString('vi-VN')}đ) <= Ngân sách còn lại (${budget.amountRemaining.toLocaleString('vi-VN')}đ).</p>`;
+            const budget = annualBudgetDB[annualBudgetID];
+            
+            if (totalRequested <= budget.amountRemaining) {
+                check1_log += `<p class="pass ml-4">✅ PASS: Ngân sách xin (${totalRequested.toLocaleString('vi-VN')}đ) <= Ngân sách còn lại (${budget.amountRemaining.toLocaleString('vi-VN')}đ).</p>`;
             } else {
-                check1_log += `<p class="fail ml-4">❌ FAIL: Ngân sách xin (${currentTotal.toLocaleString('vi-VN')}đ) > Ngân sách còn lại (${budget.amountRemaining.toLocaleString('vi-VN')}đ).</p>`;
-                errors.push(`Vượt ngân sách tổng của phòng (còn ${budget.amountRemaining.toLocaleString('vi-VN')}đ).`);
+                check1_log += `<p class="fail ml-4">❌ FAIL: Ngân sách xin (${totalRequested.toLocaleString('vi-VN')}đ) > Ngân sách còn lại (${budget.amountRemaining.toLocaleString('vi-VN')}đ).</p>`;
+                errors.push(`Vượt ngân sách tổng của phòng. (Xin ${totalRequested.toLocaleString('vi-VN')}đ, chỉ còn ${budget.amountRemaining.toLocaleString('vi-VN')}đ)`);
             }
             logPanel.innerHTML += `<div class="log-entry">${check1_log}</div>`;
             
-            // --- KIỂM TRA 2: Định mức quà tặng (Bảng Policy_Rule) ---
+            // --- KIỂM TRA 2: ĐỊNH MỨC CHI TIẾT (Policy_Rule) ---
             let check2_log = `<p>Kiểm tra 2: Định mức quà tặng (Bảng Policy_Rule)...</p>`;
-            const giftItem = budgetItemsData.find(item => item.name.toLowerCase().includes('quà tặng'));
             const giftPolicy = policyRuleDB.dinh_muc_qua_tang;
-            
+
             if (giftItem) {
-                // NÂNG CẤP: Tự động trích xuất số lượng từ tên hạng mục
-                const numGuestsMatch = giftItem.name.match(/(\d+)/); // Tìm số đầu tiên
-                const numGuests = (numGuestsMatch && numGuestsMatch[0]) ? parseInt(numGuestsMatch[0]) : 1; // Mặc định là 1 nếu không tìm thấy
+                const giftUnitCost = giftItem.amount / numGuests;
                 
-                const unitCost = giftItem.amount / numGuests;
-                
-                check2_log += `<p class="info ml-4">ℹ️ Đã phát hiện ${numGuests} người từ tên hạng mục.</p>`;
-                
-                if (unitCost <= giftPolicy) {
-                    check2_log += `<p class="pass ml-4">✅ PASS: Chi phí quà tặng (${unitCost.toLocaleString('vi-VN')}đ/người) <= Định mức (${giftPolicy.toLocaleString('vi-VN')}đ/người).</p>`;
+                if (giftUnitCost <= giftPolicy) {
+                    check2_log += `<p class="pass ml-4">✅ PASS: Chi phí quà tặng (${giftUnitCost.toLocaleString('vi-VN')}đ/người) <= Định mức (${giftPolicy.toLocaleString('vi-VN')}đ/người).</p>`;
                 } else {
-                    check2_log += `<p class="fail ml-4">❌ FAIL: Chi phí quà tặng (${unitCost.toLocaleString('vi-VN')}đ/người) > Định mức (${giftPolicy.toLocaleString('vi-VN')}đ/người).</p>`;
-                    errors.push(`Chi phí quà tặng (${unitCost.toLocaleString('vi-VN')}đ/người) vượt định mức (${giftPolicy.toLocaleString('vi-VN')}đ/người).`);
+                    check2_log += `<p class="fail ml-4">❌ FAIL: Chi phí quà tặng (${giftUnitCost.toLocaleString('vi-VN')}đ/người) > Định mức (${giftPolicy.toLocaleString('vi-VN')}đ/người).</p>`;
+                    errors.push(`Chi phí quà tặng (${giftUnitCost.toLocaleString('vi-VN')}đ/người) vượt định mức cho phép (${giftPolicy.toLocaleString('vi-Vn')}đ/người) cho ${numGuests} khách.`);
                 }
             } else {
-                check2_log += `<p class="pass ml-4">✅ PASS: Không có hạng mục quà tặng.</p>`;
+                check2_log += `<p class="pass ml-4">✅ PASS: Không tìm thấy hạng mục "Quà tặng". Bỏ qua kiểm tra.</p>`;
             }
             logPanel.innerHTML += `<div class="log-entry">${check2_log}</div>`;
 
-            // --- KIỂM TRA 3: Hạng mục bị cấm (Bảng Policy_Rule) ---
+            // --- KIỂM TRA 3: HẠNG MỤC BỊ CẤM (Policy_Rule) ---
             let check3_log = `<p>Kiểm tra 3: Hạng mục bị cấm (Bảng Policy_Rule)...</p>`;
-            const forbiddenItemsFound = [];
-            const forbiddenList = policyRuleDB.hang_muc_cam;
+            const forbiddenItems = policyRuleDB.hang_muc_cam;
+            let forbiddenFound = [];
             
             budgetItemsData.forEach(item => {
                 const itemNameLower = item.name.toLowerCase();
-                forbiddenList.forEach(forbidden => {
+                forbiddenItems.forEach(forbidden => {
                     if (itemNameLower.includes(forbidden)) {
-                        forbiddenItemsFound.push(item.name);
+                        forbiddenFound.push(item.name);
                     }
                 });
             });
-            
-            if (forbiddenItemsFound.length === 0) {
-                check3_log += `<p class="pass ml-4">✅ PASS: Không chứa hạng mục bị cấm.</p>`;
+
+            if (forbiddenFound.length === 0) {
+                check3_log += `<p class="pass ml-4">✅ PASS: Không chứa hạng mục bị cấm (ví dụ: ${forbiddenItems.join(', ')}).</p>`;
             } else {
-                check3_log += `<p class="fail ml-4">❌ FAIL: Tìm thấy hạng mục cấm: ${forbiddenItemsFound.join(', ')}.</p>`;
-                errors.push(`Phát hiện hạng mục cấm: ${forbiddenItemsFound.join(', ')}.`);
+                check3_log += `<p class="fail ml-4">❌ FAIL: Phát hiện hạng mục bị cấm: ${forbiddenFound.join(', ')}.</p>`;
+                errors.push(`Phát hiện hạng mục bị cấm (ví dụ: ${forbiddenItems.join(', ')}): ${forbiddenFound.join(', ')}.`);
             }
             logPanel.innerHTML += `<div class="log-entry">${check3_log}</div>`;
-            
+
             // --- TỔNG KẾT & GỬI THÔNG BÁO ---
             logPanel.innerHTML += `<div class="log-entry"><p class="text-yellow-400">Hoàn tất quét. Đang ra quyết định...</p></div>`;
             
             if (errors.length > 0) {
                 // KỊCH BẢN FAIL
-                logPanel.innerHTML += `<div class="log-entry"><p class="fail font-bold">KẾT QUẢ: ❌ AUTO-REJECT (Tự động từ c hối)</p></div>`;
+                logPanel.innerHTML += `<div class="log-entry"><p class="fail font-bold">KẾT QUẢ: ❌ CÓ LỖI</p></div>`;
                 logPanel.innerHTML += `<div class="log-entry"><p class="info">Hành động: Cập nhật Status = "Bị từ chối".</p></div>`;
-                logPanel.innerHTML += `<div class="log-entry"><p class="info">Hành động: Gửi thông báo lỗi cho Sales (Nguyễn Văn An).</p></div>`;
+                logPanel.innerHTML += `<div class="log-entry"><p class="info">Hành động: Gửi thông báo lỗi cho Nhân viên (Nguyễn Văn An).</p></div>`;
                 showNotification_Sales(errors);
             } else {
                 // KỊCH BẢN PASS
-                logPanel.innerHTML += `<div class="log-entry"><p class="pass font-bold">KẾT QUẢ: ✅ TẤT CẢ Đã PASS</p></div>`;
+                logPanel.innerHTML += `<div class="log-entry"><p class="pass font-bold">KẾT QUẢ: ✅ TẤT CẢ ĐÃ PASS</p></div>`;
                 logPanel.innerHTML += `<div class="log-entry"><p class="info">Hành động: Cập nhật Status = "Chờ sếp ATO duyệt".</p></div>`;
                 logPanel.innerHTML += `<div class="log-entry"><p class="info">Hành động: Gửi thông báo tóm tắt cho Sếp (Trần Thị B).</p></div>`;
-                showNotification_Manager(currentTotal);
+                showNotification_Manager(totalRequested);
             }
         }
-        
-        // Thông báo cho Sales (FAIL)
+
+        // --- CÁC HÀM HIỂN THỊ THÔNG BÁO ---
+
         function showNotification_Sales(errors) {
-            let errorListHTML = errors.map(e => `<li>${e}</li>`).join('');
-            
+            let errorList = errors.map(e => `<li>- ${e}</li>`).join('');
             notificationPanel.innerHTML = `
                 <div class="notification p-4 bg-red-100 border border-red-300 rounded-md">
-                    <h3 class="font-medium text-red-800">Gửi Nguyễn Văn An (Sales)</h3>
-                    <p class="text-sm text-red-700 mt-1">Đề xuất của bạn bị từ chối tự động. Vui lòng sửa các lỗi sau và gửi lại:</p>
-                    <ul class="list-disc list-inside text-sm text-red-900 mt-2 space-y-1">
-                        ${errorListHTML}
+                    <h3 class="font-medium text-red-800">Gửi Nguyễn Văn An (Nhân viên)</h3>
+                    <p class="text-sm text-red-700 mt-1">Đề xuất của bạn đã bị <strong class="font-bold">hệ thống tự động từ chối</strong>. Vui lòng sửa các lỗi sau và gửi lại:</p>
+                    <ul class="list-disc list-inside text-sm text-red-700 mt-2 space-y-1">
+                        ${errorList}
                     </ul>
                 </div>`;
         }
         
-        // Thông báo cho Quản lý (PASS)
         function showNotification_Manager(totalAmount) {
-            const requestName = document.getElementById('requestName').value || "hoạt động";
             notificationPanel.innerHTML = `
                 <div class="notification p-4 bg-blue-100 border border-blue-300 rounded-md">
                     <h3 class="font-medium text-blue-800">Gửi Trần Thị B (Quản lý)</h3>
-                    <p class="text-sm text-blue-700 mt-1">Nguyễn Văn An vừa gửi đề xuất "${requestName}" (${totalAmount.toLocaleString('vi-VN')}đ).</p>
+                    <p class="text-sm text-blue-700 mt-1">Nguyễn Văn An vừa gửi đề xuất "${requestNameInput.value}" (${totalAmount.toLocaleString('vi-VN')}đ).</p>
                     <p class="text-sm text-blue-900 mt-2 italic bg-green-100 p-2 rounded">
                         <strong>Ghi chú của AI:</strong> Đề xuất này đã được tự động kiểm tra, tuân thủ định mức công ty và nằm trong ngân sách còn lại.
                     </p>
                     <p class="text-sm text-blue-700 mt-2">Vui lòng xem xét và phê duyệt.</p>
                 </div>`;
         }
-
+        
         // --- KHỞI TẠO KHI TẢI TRANG ---
         document.addEventListener('DOMContentLoaded', () => {
-            renderBudgetItems(); // Hiển thị các hạng mục ban đầu
-            
-            // Gắn listener cho các nút chính
-            submitBtn.addEventListener('click', runAIAgent);
+            // Gắn Event Listener cho nút "Thêm"
             addItemBtn.addEventListener('click', handleAddItem);
             
-            // MỚI: Gắn listener cho AI Co-pilot
+            // Gắn Event Listener cho nút "Gửi duyệt"
+            submitBtn.addEventListener('click', runAIAgent);
             
-            // Chạy 1 lần lúc tải trang để có gợi ý ngay
-            runAICopilot();
-            
-            // SỬA LỖI: Chỉ chạy hàm `runAICopilot` sau khi người dùng gõ xong
+            // Gắn Event Listener cho AI Co-pilot (với debounce)
             const debouncedRunAICopilot = debounce(runAICopilot, 300);
             requestNameInput.addEventListener('input', debouncedRunAICopilot);
+            
+            // Render các hạng mục ban đầu
+            renderBudgetItems();
+
+            // Tự động chạy Co-pilot lần đầu khi tải trang
+            runAICopilot();
         });
     </script>
 </body>
