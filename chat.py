@@ -14,35 +14,35 @@ import streamlit as st
 WEBHOOK_URL = "https://chatgpt.id.vn/webhook-test/70ecee2a-c278-461f-a898-52ff907b4fb2"
 
 SUGGESTIONS = {
-    ":blue[:material/hub:] n8n la gi?": "n8n la gi va cach bat dau mot workflow don gian?",
-    ":green[:material/route:] Trigger webhook hoat dong ra sao?": (
-        "Giai thich cach su dung webhook trigger va cach kiem tra input payload."
+    ":blue[:material/hub:] n8n là gì?": "n8n là gì và cách bắt đầu một workflow đơn giản?",
+    ":green[:material/route:] Trigger webhook hoạt động ra sao?": (
+        "Giải thích cách sử dụng webhook trigger và cách kiểm tra payload đầu vào."
     ),
-    ":orange[:material/auto_graph:] Lam sao debug mot workflow loi?": (
-        "Huong dan cac buoc thu nghiem va debug workflow n8n khi gap loi."
+    ":orange[:material/auto_graph:] Làm sao debug một workflow lỗi?": (
+        "Hướng dẫn các bước thử nghiệm và debug workflow n8n khi gặp lỗi."
     ),
-    ":violet[:material/database:] Luu tru du lieu dau ra nhu the nao?": (
-        "Co nhung cach nao de luu tru ket qua workflow (Google Sheet, DB, Snowflake...)?"
+    ":violet[:material/database:] Lưu trữ dữ liệu đầu ra như thế nào?": (
+        "Có những cách nào để lưu trữ kết quả workflow (Google Sheet, DB, Snowflake...)?"
     ),
-    ":red[:material/lock:] Cach bao mat webhook?": (
-        "Goi y cac ky thuat xac thuc va giai ma de bao ve webhook cua toi."
+    ":red[:material/lock:] Cách bảo mật webhook?": (
+        "Gợi ý các kỹ thuật xác thực và giải mã để bảo vệ webhook của tôi."
     ),
 }
 
-st.set_page_config(page_title="Chat voi n8n", page_icon="✨")
+st.set_page_config(page_title="Chat với n8n", page_icon="✨")
 
 st.html(div(style=styles(font_size=rem(5), line_height=1))["❉"])
 
 title_row = st.container(horizontal=True, vertical_alignment="bottom")
 
 
-@st.dialog("Luu y")
+@st.dialog("Lưu ý")
 def show_disclaimer_dialog():
     st.caption(
         """
-        Day la demo chatbot ket noi den mot webhook n8n. Cac cau tra loi co the
-        chua thong tin chua chinh xac. Vui long tranh chia se du lieu nhay cam
-        va hay kiem chung lai cac hanh dong thuc te truoc khi thuc hien.
+        Đây là demo chatbot kết nối đến một webhook n8n. Các câu trả lời có thể
+        chứa thông tin chưa chính xác. Vui lòng tránh chia sẻ dữ liệu nhạy cảm
+        và hãy kiểm chứng lại các hành động thực tế trước khi thực hiện.
         """
     )
 
@@ -55,9 +55,9 @@ def clear_conversation():
 
 
 with title_row:
-    st.title("Chat voi n8n (webhook)", anchor=False, width="stretch")
+    st.title("Chat với n8n (webhook)", anchor=False, width="stretch")
     st.button(
-        "Restart",
+        "Khởi động lại",
         icon=":material/refresh:",
         on_click=clear_conversation,
         type="secondary",
@@ -203,7 +203,7 @@ def process_files(raw_file: Any, session_dir: Path) -> List[Dict[str, Any]]:
             entry.get("data") or entry.get("base64") or entry.get("content") or ""
         )
         if not isinstance(data_b64, str):
-            processed.append({"error": "File khong co du lieu hop le."})
+            processed.append({"error": "Tệp không có dữ liệu hợp lệ."})
             continue
 
         data_b64 = data_b64.strip()
@@ -226,7 +226,7 @@ def process_files(raw_file: Any, session_dir: Path) -> List[Dict[str, Any]]:
                     "filename": filename,
                     "mime": mime,
                     "label": label,
-                    "error": f"Loi giai ma tep: {exc}",
+                    "error": f"Lỗi giải mã tệp: {exc}",
                 }
             )
             continue
@@ -241,7 +241,7 @@ def process_files(raw_file: Any, session_dir: Path) -> List[Dict[str, Any]]:
                     "filename": filename,
                     "mime": mime,
                     "label": label,
-                    "error": f"Loi ghi tep: {exc}",
+                    "error": f"Lỗi ghi tệp: {exc}",
                 }
             )
             continue
@@ -322,7 +322,7 @@ def build_payload(data: Any, session_dir: Path) -> Dict[str, Any]:
 def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
     code = chart.get("code")
     if not isinstance(code, str) or not code.strip():
-        st.info("Khong co code bieu do de hien thi.")
+        st.info("Không có code biểu đồ để hiển thị.")
         return
 
     caption = chart.get("caption") or chart.get("description")
@@ -332,7 +332,7 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
     try:
         import matplotlib.pyplot as plt  # type: ignore
     except ImportError:
-        st.warning("Matplotlib chua duoc cai dat.")
+        st.warning("Matplotlib chưa được cài đặt.")
         st.code(code, language="python")
         return
 
@@ -385,7 +385,7 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
             figure = plt.gcf()
         st.pyplot(figure)
     except Exception as exc:
-        st.error(f"Loi thuc thi code bieu do: {exc}")
+        st.error(f"Lỗi thực thi code biểu đồ: {exc}")
         st.code(code, language="python")
         return
 
@@ -397,7 +397,7 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
 
             filename = file_info.get("filename") or f"chart_file_{idx + 1}.bin"
             mime = file_info.get("mime") or "application/octet-stream"
-            label = file_info.get("label") or f"Tai {filename}"
+            label = file_info.get("label") or f"Tải {filename}"
 
             download_key = (
                 f"chart_download_{session_dir.name}_{filename}_{idx}".replace(" ", "_")
@@ -535,6 +535,35 @@ user_just_clicked_suggestion = (
 )
 user_first_interaction = user_just_asked_initial_question or user_just_clicked_suggestion
 has_message_history = len(st.session_state.messages) > 0
+
+with st.sidebar:
+    st.subheader("Bang dieu khien")
+    st.caption("Chatbot nay gui cau hoi den webhook n8n ben duoi.")
+    st.code(WEBHOOK_URL, language="text")
+    st.text_input("Session ID", value=SESSION_ID, disabled=True)
+    st.metric("So tin nhan", len(st.session_state.messages))
+    st.sidebar.button(
+        ":material/balance: Thong tin phap ly",
+        key="sidebar_disclaimer",
+        use_container_width=True,
+        on_click=show_disclaimer_dialog,
+        type="secondary",
+    )
+    st.sidebar.button(
+        ":material/refresh: Tao session moi",
+        key="sidebar_restart",
+        use_container_width=True,
+        on_click=clear_conversation,
+    )
+    st.sidebar.divider()
+    st.markdown("### Goi y nhanh")
+    for label, prompt in SUGGESTIONS.items():
+        st.markdown(f"- {label}\n\n:small[{prompt}]")
+    st.sidebar.divider()
+    st.caption(
+        "Ban co the su dung cac nut nhanh de khoi tao cau hoi hoac bam Restart "
+        "de lam moi hoan toan phien chat."
+    )
 
 if not user_first_interaction and not has_message_history:
     st.session_state.messages = []
