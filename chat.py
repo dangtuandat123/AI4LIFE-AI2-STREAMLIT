@@ -1,4 +1,5 @@
 import base64
+import datetime
 import json
 import uuid
 from pathlib import Path
@@ -12,22 +13,17 @@ import streamlit as st
 
 
 WEBHOOK_URL = "https://chatgpt.id.vn/webhook-test/70ecee2a-c278-461f-a898-52ff907b4fb2"
+AGENT_SUGGEST_WEBHOOK_URL = "https://chatgpt.id.vn/webhook/agent-suggest"
 
-SUGGESTIONS = {
-    ":blue[:material/hub:] n8n là gì?": "n8n là gì và cách bắt đầu một workflow đơn giản?",
-    ":green[:material/route:] Trigger webhook hoạt động ra sao?": (
-        "Giải thích cách sử dụng webhook trigger và cách kiểm tra payload đầu vào."
-    ),
-    ":orange[:material/auto_graph:] Làm sao debug một workflow lỗi?": (
-        "Hướng dẫn các bước thử nghiệm và debug workflow n8n khi gặp lỗi."
-    ),
-    ":violet[:material/database:] Lưu trữ dữ liệu đầu ra như thế nào?": (
-        "Có những cách nào để lưu trữ kết quả workflow (Google Sheet, DB, Snowflake...)?"
-    ),
-    ":red[:material/lock:] Cách bảo mật webhook?": (
-        "Gợi ý các kỹ thuật xác thực và giải mã để bảo vệ webhook của tôi."
-    ),
-}
+SUGGESTIONS_DEBOUNCE_SECONDS = 1.0
+
+FALLBACK_SUGGESTIONS = [
+    "n8n là gì và cách bắt đầu một workflow đơn giản?",
+    "Giải thích cách sử dụng webhook trigger và cách kiểm tra payload đầu vào.",
+    "Hướng dẫn các bước thử nghiệm và debug workflow n8n khi gặp lỗi.",
+    "Có những cách nào để lưu trữ kết quả workflow (Google Sheet, DB, Snowflake...)?",
+    "Gợi ý các kỹ thuật xác thực và giải mã để bảo vệ webhook của tôi.",
+]
 
 st.set_page_config(page_title="Chat với n8n", page_icon="✨")
 
@@ -49,9 +45,109 @@ def show_disclaimer_dialog():
 
 def clear_conversation():
     st.session_state.messages = []
-    st.session_state.initial_question = None
-    st.session_state.selected_suggestion = None
     st.session_state.sid = str(uuid.uuid4())
+    st.session_state.prompt_text = ""
+    st.session_state.last_input_change = datetime.datetime.now()
+    st.session_state.last_suggest_text = None
+    st.session_state.last_suggest_timestamp = datetime.datetime.fromtimestamp(0)
+    st.session_state.agent_suggestions = list(FALLBACK_SUGGESTIONS)
+    st.session_state.suggestions_loading = False
+    st.session_state.prefill_prompt = None
+    st.session_state.pending_prompt = None
+
+
+def parse_agent_suggestions(payload: Any) -> List[str]:
+    """Extracts suggestion strings from the agent webhook payload."""
+    suggestions: List[str] = []
+
+    if isinstance(payload, list):
+        for item in payload:
+            suggestions.extend(parse_agent_suggestions(item))
+    elif isinstance(payload, dict):
+        if "output" in payload:
+            suggestions.extend(parse_agent_suggestions(payload["output"]))
+        raw = payload.get("suggestions")
+        if isinstance(raw, list):
+            for entry in raw:
+                if isinstance(entry, str):
+                    clean = entry.strip()
+                    if clean:
+                        suggestions.append(clean)
+    elif isinstance(payload, str):
+        clean = payload.strip()
+        if clean:
+            suggestions.append(clean)
+
+    unique: List[str] = []
+    seen = set()
+    for suggestion in suggestions:
+        if suggestion not in seen:
+            seen.add(suggestion)
+            unique.append(suggestion)
+
+    return unique
+
+
+def fetch_agent_suggestions(query_text: str) -> List[str]:
+    """Calls the suggestion webhook and returns a cleaned list of prompts."""
+    try:
+        response = requests.post(
+            AGENT_SUGGEST_WEBHOOK_URL,
+            json={"text": query_text or ""},
+            timeout=60,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        st.warning(f"Lỗi lấy gợi ý: {exc}")
+        return []
+
+    try:
+        payload = response.json()
+    except ValueError:
+        st.warning("Phản hồi gợi ý không phải JSON.")
+        return []
+
+    suggestions = parse_agent_suggestions(payload)
+    return suggestions
+
+
+def refresh_agent_suggestions(query_text: str) -> None:
+    """Updates session state with the newest suggestions for `query_text`."""
+    if st.session_state.get("suggestions_loading"):
+        return
+
+    st.session_state.suggestions_loading = True
+    try:
+        suggestions = fetch_agent_suggestions(query_text)
+    finally:
+        st.session_state.suggestions_loading = False
+
+    if not suggestions:
+        suggestions = list(FALLBACK_SUGGESTIONS)
+
+    st.session_state.agent_suggestions = suggestions
+    st.session_state.last_suggest_text = query_text
+    st.session_state.last_suggest_timestamp = datetime.datetime.now()
+
+
+def handle_prompt_change() -> None:
+    """Records when the prompt text is edited manually."""
+    st.session_state.last_input_change = datetime.datetime.now()
+
+
+def send_current_prompt() -> None:
+    """Captures the current prompt and clears the input box."""
+    trimmed = st.session_state.prompt_text.strip()
+    if not trimmed:
+        return
+    st.session_state.pending_prompt = trimmed
+    st.session_state.prompt_text = ""
+    st.session_state.last_input_change = datetime.datetime.now()
+
+
+def queue_prompt_prefill(text: str) -> None:
+    """Schedules a suggestion to be inserted into the prompt box."""
+    st.session_state.prefill_prompt = text
 
 
 with title_row:
@@ -522,19 +618,47 @@ SESSION_DIR = ensure_session_dir(SESSION_ID)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "initial_question" not in st.session_state:
-    st.session_state.initial_question = None
+if "prompt_text" not in st.session_state:
+    st.session_state.prompt_text = ""
 
-if "selected_suggestion" not in st.session_state:
-    st.session_state.selected_suggestion = None
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
 
-selected_label = st.session_state.selected_suggestion
-user_just_asked_initial_question = bool(st.session_state.initial_question)
-user_just_clicked_suggestion = (
-    isinstance(selected_label, str) and selected_label in SUGGESTIONS
-)
-user_first_interaction = user_just_asked_initial_question or user_just_clicked_suggestion
-has_message_history = len(st.session_state.messages) > 0
+if "prefill_prompt" not in st.session_state:
+    st.session_state.prefill_prompt = None
+
+if "agent_suggestions" not in st.session_state:
+    st.session_state.agent_suggestions = list(FALLBACK_SUGGESTIONS)
+
+if "last_suggest_text" not in st.session_state:
+    st.session_state.last_suggest_text = None
+
+if "last_suggest_timestamp" not in st.session_state:
+    st.session_state.last_suggest_timestamp = datetime.datetime.fromtimestamp(0)
+
+if "suggestions_loading" not in st.session_state:
+    st.session_state.suggestions_loading = False
+
+if "last_input_change" not in st.session_state:
+    st.session_state.last_input_change = datetime.datetime.now()
+
+now = datetime.datetime.now()
+current_prompt_value = st.session_state.prompt_text.strip()
+
+if (
+    st.session_state.last_suggest_text is None
+    and not st.session_state.suggestions_loading
+):
+    refresh_agent_suggestions(current_prompt_value)
+else:
+    debounce_delta = datetime.timedelta(seconds=SUGGESTIONS_DEBOUNCE_SECONDS)
+    idle_time = now - st.session_state.last_input_change
+    if (
+        idle_time >= debounce_delta
+        and current_prompt_value != (st.session_state.last_suggest_text or "")
+        and not st.session_state.suggestions_loading
+    ):
+        refresh_agent_suggestions(current_prompt_value)
 
 with st.sidebar:
     st.subheader("Bảng điều khiển")
@@ -542,49 +666,31 @@ with st.sidebar:
     st.code(WEBHOOK_URL, language="text")
     st.text_input("Mã phiên", value=SESSION_ID, disabled=True)
     st.metric("Số tin nhắn", len(st.session_state.messages))
-    st.sidebar.button(
+    st.button(
         ":material/balance: Thông tin pháp lý",
         key="sidebar_disclaimer",
         use_container_width=True,
         on_click=show_disclaimer_dialog,
         type="secondary",
     )
-    st.sidebar.button(
+    st.button(
         ":material/refresh: Tạo phiên mới",
         key="sidebar_restart",
         use_container_width=True,
         on_click=clear_conversation,
     )
-    st.sidebar.divider()
-    st.markdown("### Gợi ý nhanh")
-    for label, prompt in SUGGESTIONS.items():
-        st.markdown(f"- {label}\n\n:small[{prompt}]")
-    st.sidebar.divider()
-    st.caption(
-        "Bạn có thể sử dụng các nút nhanh để khởi tạo câu hỏi hoặc bấm "
-        "Khởi động lại để làm mới hoàn toàn phiên chat."
-    )
-
-if not user_first_interaction and not has_message_history:
-    st.session_state.messages = []
-
-    with st.container():
-        st.chat_input("Nhập câu hỏi đầu tiên...", key="initial_question")
-        st.pills(
-            label="Ví dụ",
-            label_visibility="collapsed",
-            options=list(SUGGESTIONS.keys()),
-            key="selected_suggestion",
-        )
-
-    st.button(
-        "&nbsp;:small[:gray[:material/balance: Thông tin pháp lý]]",
-        type="tertiary",
-        on_click=show_disclaimer_dialog,
-    )
-
-    st.stop()
-
+    st.divider()
+    st.markdown("### Gợi ý hiện tại")
+    if st.session_state.suggestions_loading:
+        st.caption("Đang cập nhật gợi ý dựa trên nội dung bạn nhập…")
+    sidebar_suggestions = st.session_state.agent_suggestions[:3]
+    if sidebar_suggestions:
+        for idx, suggestion in enumerate(sidebar_suggestions, start=1):
+            st.markdown(f"**#{idx}** {suggestion}")
+    else:
+        st.caption("Chưa có gợi ý nào khả dụng.")
+    st.divider()
+    st.caption("Gợi ý sẽ tự cập nhật sau ~1 giây kể từ lần gõ cuối cùng.")
 
 for history_index, message in enumerate(st.session_state.messages):
     role = message.get("role", "assistant")
@@ -606,27 +712,67 @@ for history_index, message in enumerate(st.session_state.messages):
                 st.error(message["error"])
 
 
-user_message = st.chat_input("Nhập câu hỏi tiếp theo...")
-message_source: Optional[str] = None
+user_message: Optional[str] = None
 
-if not user_message:
-    if user_just_asked_initial_question:
-        user_message = st.session_state.initial_question
-        message_source = "initial"
-    elif user_just_clicked_suggestion:
-        selection = st.session_state.selected_suggestion
-        if selection in SUGGESTIONS:
-            user_message = SUGGESTIONS[selection]
-            message_source = "suggestion"
+with st.container():
+    st.markdown("### Soạn câu hỏi của bạn")
+    if st.session_state.prefill_prompt:
+        st.session_state.prompt_text = st.session_state.prefill_prompt
+        st.session_state.prefill_prompt = None
+        st.session_state.last_input_change = datetime.datetime.now()
+    st.text_area(
+        "Nội dung câu hỏi",
+        key="prompt_text",
+        placeholder="Nhập yêu cầu hoặc mô tả dữ liệu bạn muốn phân tích...",
+        height=50,
+        label_visibility="collapsed",
+        on_change=handle_prompt_change,
+    )
+    trimmed_prompt = st.session_state.prompt_text.strip()
+    info_col, action_col = st.columns([4, 1], gap="small")
+    with info_col:
+        st.caption("Gợi ý sẽ tự cập nhật sau ~1 giây bạn ngừng nhập.")
+    with action_col:
+        st.button(
+            "Gửi",
+            key="send_prompt_button",
+            use_container_width=True,
+            type="primary",
+            disabled=not trimmed_prompt,
+            on_click=send_current_prompt,
+        )
+    pending = st.session_state.pending_prompt
+    if pending:
+        user_message = pending
+        st.session_state.pending_prompt = None
+
+st.divider()
+with st.container():
+    st.caption("Gợi ý từ Agent")
+    with st.container(border=True):
+        if st.session_state.suggestions_loading:
+            st.caption("Đang cập nhật gợi ý dựa trên nội dung bạn nhập…")
+        main_suggestions = st.session_state.agent_suggestions[:6]
+        if not main_suggestions:
+            st.caption("Chưa có gợi ý phù hợp. Hãy nhập yêu cầu cụ thể hơn.")
+        else:
+            for idx, suggestion in enumerate(main_suggestions, start=1):
+                row_cols = st.columns([12, 3], gap="small")
+                with row_cols[0]:
+                    st.markdown(f":small[#{idx}] {suggestion}")
+                with row_cols[1]:
+                    st.button(
+                        ":material/input:",
+                        key=f"suggestion_insert_{idx}",
+                        use_container_width=True,
+                        type="secondary",
+                        on_click=lambda text=suggestion: queue_prompt_prefill(text),
+                    )
+    st.caption("Gợi ý sẽ tự cập nhật ~1 giây sau khi bạn dừng nhập.")
 
 if user_message:
     raw_prompt = user_message
     display_prompt = raw_prompt.replace("$", r"\$")
-
-    if message_source == "initial":
-        st.session_state.initial_question = None
-    if message_source == "suggestion":
-        st.session_state.selected_suggestion = None
 
     user_record = {"role": "user", "content": raw_prompt}
     st.session_state.messages.append(user_record)
