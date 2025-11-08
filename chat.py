@@ -14,8 +14,8 @@ import streamlit as st
 
 WEBHOOK_URL = "https://chatgpt.id.vn/webhook-test/70ecee2a-c278-461f-a898-52ff907b4fb2"
 AGENT_SUGGEST_WEBHOOK_URL = "https://chatgpt.id.vn/webhook/agent-suggest"
-
-SUGGESTIONS_DEBOUNCE_SECONDS = 0.5
+# None disables timeout so long-running webhook responses don't fail spuriously.
+WEBHOOK_TIMEOUT_SECONDS: Optional[float] = None
 
 FALLBACK_SUGGESTIONS = [
     "n8n là gì và cách bắt đầu một workflow đơn giản?",
@@ -24,6 +24,8 @@ FALLBACK_SUGGESTIONS = [
     "Có những cách nào để lưu trữ kết quả workflow (Google Sheet, DB, Snowflake...)?",
     "Gợi ý các kỹ thuật xác thực và giải mã để bảo vệ webhook của tôi.",
 ]
+
+GENERIC_ERROR_MESSAGE = "Không thể thực hiện ngay lúc này."
 
 st.set_page_config(page_title="Chat với n8n", page_icon="✨")
 
@@ -48,9 +50,7 @@ def clear_conversation():
     st.session_state.sid = str(uuid.uuid4())
     st.session_state.suggestion_seed = ""
     st.session_state.chat_prompt = ""
-    st.session_state.last_input_change = datetime.datetime.now()
     st.session_state.last_suggest_text = None
-    st.session_state.last_suggest_timestamp = datetime.datetime.fromtimestamp(0)
     st.session_state.agent_suggestions = list(FALLBACK_SUGGESTIONS)
     st.session_state.suggestions_loading = False
     st.session_state.prefill_prompt = None
@@ -98,13 +98,15 @@ def fetch_agent_suggestions(query_text: str) -> List[str]:
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        st.warning(f"Lỗi lấy gợi ý: {exc}")
+        st.warning(GENERIC_ERROR_MESSAGE)
+        print(f"[suggestions] Request error: {exc}")
         return []
 
     try:
         payload = response.json()
     except ValueError:
-        st.warning("Phản hồi gợi ý không phải JSON.")
+        st.warning(GENERIC_ERROR_MESSAGE)
+        print("[suggestions] Invalid JSON response.")
         return []
 
     suggestions = parse_agent_suggestions(payload)
@@ -127,13 +129,6 @@ def refresh_agent_suggestions(query_text: str) -> None:
 
     st.session_state.agent_suggestions = suggestions
     st.session_state.last_suggest_text = query_text
-    st.session_state.last_suggest_timestamp = datetime.datetime.now()
-
-
-def mark_suggestion_seed_changed() -> None:
-    """Records edits to the suggestion seed text."""
-    st.session_state.last_input_change = datetime.datetime.now()
-
 
 def prefill_chat_input(text: str) -> None:
     """Queues a suggestion to be inserted into the chat input box."""
@@ -211,7 +206,7 @@ def parse_charts(raw_chart: Any, session_dir: Optional[Path] = None) -> List[Dic
             chart_info["code"] = code
 
         if isinstance(entry, dict):
-            for key in ("title", "caption", "description"):
+            for key in ("title", "caption", "description", "comment"):
                 value = entry.get(key)
                 if isinstance(value, str):
                     chart_info[key] = value
@@ -244,6 +239,7 @@ def parse_tables(raw_table: Any) -> List[Dict[str, Any]]:
         columns = entry.get("columns")
         rows = entry.get("rows")
         caption = entry.get("caption")
+        comment = entry.get("comment")
 
         if isinstance(columns, (list, tuple)) and isinstance(rows, (list, tuple)):
             table_info = {
@@ -255,6 +251,8 @@ def parse_tables(raw_table: Any) -> List[Dict[str, Any]]:
             }
             if isinstance(caption, str):
                 table_info["caption"] = caption
+            if isinstance(comment, str):
+                table_info["comment"] = comment
             tables.append(table_info)
 
     return tables
@@ -412,6 +410,10 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
         return
 
     caption = chart.get("caption") or chart.get("description")
+    comment_value = chart.get("comment")
+    comment_text = (
+        comment_value if isinstance(comment_value, str) and comment_value.strip() else None
+    )
     if isinstance(caption, str):
         st.caption(caption)
 
@@ -420,6 +422,8 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
     except ImportError:
         st.warning("Matplotlib chưa được cài đặt.")
         st.code(code, language="python")
+        if comment_text:
+            st.markdown(comment_text)
         return
 
     plt.close("all")
@@ -470,9 +474,13 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
         if figure is None:
             figure = plt.gcf()
         st.pyplot(figure)
+        if comment_text:
+            st.markdown(comment_text)
     except Exception as exc:
         st.error(f"Lỗi thực thi code biểu đồ: {exc}")
         st.code(code, language="python")
+        if comment_text:
+            st.markdown(comment_text)
         return
 
     if chart_files:
@@ -500,6 +508,10 @@ def render_chart(chart: Dict[str, Any], session_dir: Path) -> None:
 
 def render_table(table: Dict[str, Any]) -> None:
     caption = table.get("caption")
+    comment_value = table.get("comment")
+    comment_text = (
+        comment_value if isinstance(comment_value, str) and comment_value.strip() else None
+    )
     if caption:
         st.caption(caption)
 
@@ -519,6 +531,9 @@ def render_table(table: Dict[str, Any]) -> None:
         st.table(rows)
     except Exception as exc:
         st.error(f"Lỗi hiển thị bảng: {exc}")
+        return
+    if comment_text:
+        st.markdown(comment_text)
 
 
 def render_file(
@@ -623,32 +638,22 @@ if "agent_suggestions" not in st.session_state:
 if "last_suggest_text" not in st.session_state:
     st.session_state.last_suggest_text = None
 
-if "last_suggest_timestamp" not in st.session_state:
-    st.session_state.last_suggest_timestamp = datetime.datetime.fromtimestamp(0)
-
 if "suggestions_loading" not in st.session_state:
     st.session_state.suggestions_loading = False
 
-if "last_input_change" not in st.session_state:
-    st.session_state.last_input_change = datetime.datetime.now()
+raw_seed_value = st.session_state.suggestion_seed
+current_prompt_value = raw_seed_value.strip()
+last_prompt = st.session_state.last_suggest_text or ""
 
-now = datetime.datetime.now()
-current_prompt_value = st.session_state.suggestion_seed.strip()
+should_refresh = False
+if not st.session_state.suggestions_loading:
+    if st.session_state.last_suggest_text is None:
+        should_refresh = True
+    elif current_prompt_value != last_prompt:
+        should_refresh = True
 
-if (
-    st.session_state.last_suggest_text is None
-    and not st.session_state.suggestions_loading
-):
+if should_refresh:
     refresh_agent_suggestions(current_prompt_value)
-else:
-    debounce_delta = datetime.timedelta(seconds=SUGGESTIONS_DEBOUNCE_SECONDS)
-    idle_time = now - st.session_state.last_input_change
-    if (
-        idle_time >= debounce_delta
-        and current_prompt_value != (st.session_state.last_suggest_text or "")
-        and not st.session_state.suggestions_loading
-    ):
-        refresh_agent_suggestions(current_prompt_value)
 
 with st.sidebar:
     st.subheader("Bảng điều khiển")
@@ -680,7 +685,7 @@ with st.sidebar:
     else:
         st.caption("Chưa có gợi ý nào khả dụng.")
     st.divider()
-    st.caption("Gợi ý sẽ tự cập nhật sau ~1 giây kể từ lần gõ cuối cùng.")
+    st.caption("Gợi ý sẽ tự cập nhật mỗi khi bạn thay đổi nội dung.")
 
 for history_index, message in enumerate(st.session_state.messages):
     role = message.get("role", "assistant")
@@ -710,9 +715,8 @@ with st.container():
         key="suggestion_seed",
         placeholder="Ví dụ: Phân tích doanh thu theo tháng, so sánh theo vùng...",
         height=100,
-        on_change=mark_suggestion_seed_changed,
     )
-    st.caption("Gợi ý sẽ tự cập nhật ~1 giây sau khi bạn dừng nhập.")
+    st.caption("Gợi ý sẽ tự cập nhật ngay sau khi bạn dừng nhập.")
     with st.container(border=True):
         if st.session_state.suggestions_loading:
             st.caption("Đang cập nhật gợi ý dựa trên nội dung bạn nhập…")
@@ -761,21 +765,26 @@ if user_message:
 
         with st.spinner("Đang chờ phản hồi từ webhook..."):
             try:
-                response = requests.post(WEBHOOK_URL, json=payload_request, timeout=300)
+                response = requests.post(
+                    WEBHOOK_URL, json=payload_request, timeout=WEBHOOK_TIMEOUT_SECONDS
+                )
                 response.raise_for_status()
                 data = response.json()
                 reply_payload = build_payload(data, SESSION_DIR)
             except requests.exceptions.RequestException as exc:
-                error_message = f"Lỗi gọi webhook: {exc}"
-            except ValueError:
-                error_message = "Phản hồi webhook không hợp lệ (không phải JSON)."
+                print(f"[webhook] Request error: {exc}")
+                error_message = GENERIC_ERROR_MESSAGE
+            except ValueError as exc:
+                print(f"[webhook] Invalid JSON response: {exc}")
+                error_message = GENERIC_ERROR_MESSAGE
             except Exception as exc:
-                error_message = f"Lỗi không xác định: {exc}"
+                print(f"[webhook] Unexpected error: {exc}")
+                error_message = GENERIC_ERROR_MESSAGE
 
         if reply_payload is None or not any(
             reply_payload.get(key) for key in ("text", "charts", "tables", "files")
         ):
-            fallback_text = error_message or "Không nhận được phản hồi từ webhook."
+            fallback_text = error_message or GENERIC_ERROR_MESSAGE
             reply_payload = {
                 "types": ["text"],
                 "text": [fallback_text],
