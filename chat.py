@@ -4,14 +4,64 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from htbuilder import div, styles
+from htbuilder.units import rem
+
 import requests
 import streamlit as st
 
 
 WEBHOOK_URL = "https://chatgpt.id.vn/webhook-test/70ecee2a-c278-461f-a898-52ff907b4fb2"
 
-st.set_page_config(page_title="Chat voi n8n")
-st.title("Chat voi n8n (webhook)")
+SUGGESTIONS = {
+    ":blue[:material/hub:] n8n la gi?": "n8n la gi va cach bat dau mot workflow don gian?",
+    ":green[:material/route:] Trigger webhook hoat dong ra sao?": (
+        "Giai thich cach su dung webhook trigger va cach kiem tra input payload."
+    ),
+    ":orange[:material/auto_graph:] Lam sao debug mot workflow loi?": (
+        "Huong dan cac buoc thu nghiem va debug workflow n8n khi gap loi."
+    ),
+    ":violet[:material/database:] Luu tru du lieu dau ra nhu the nao?": (
+        "Co nhung cach nao de luu tru ket qua workflow (Google Sheet, DB, Snowflake...)?"
+    ),
+    ":red[:material/lock:] Cach bao mat webhook?": (
+        "Goi y cac ky thuat xac thuc va giai ma de bao ve webhook cua toi."
+    ),
+}
+
+st.set_page_config(page_title="Chat voi n8n", page_icon="✨")
+
+st.html(div(style=styles(font_size=rem(5), line_height=1))["❉"])
+
+title_row = st.container(horizontal=True, vertical_alignment="bottom")
+
+
+@st.dialog("Luu y")
+def show_disclaimer_dialog():
+    st.caption(
+        """
+        Day la demo chatbot ket noi den mot webhook n8n. Cac cau tra loi co the
+        chua thong tin chua chinh xac. Vui long tranh chia se du lieu nhay cam
+        va hay kiem chung lai cac hanh dong thuc te truoc khi thuc hien.
+        """
+    )
+
+
+def clear_conversation():
+    st.session_state.messages = []
+    st.session_state.initial_question = None
+    st.session_state.selected_suggestion = None
+    st.session_state.sid = str(uuid.uuid4())
+
+
+with title_row:
+    st.title("Chat voi n8n (webhook)", anchor=False, width="stretch")
+    st.button(
+        "Restart",
+        icon=":material/refresh:",
+        on_click=clear_conversation,
+        type="secondary",
+    )
 
 
 def ensure_session_dir(session_id: str) -> Path:
@@ -472,6 +522,40 @@ SESSION_DIR = ensure_session_dir(SESSION_ID)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "initial_question" not in st.session_state:
+    st.session_state.initial_question = None
+
+if "selected_suggestion" not in st.session_state:
+    st.session_state.selected_suggestion = None
+
+selected_label = st.session_state.selected_suggestion
+user_just_asked_initial_question = bool(st.session_state.initial_question)
+user_just_clicked_suggestion = (
+    isinstance(selected_label, str) and selected_label in SUGGESTIONS
+)
+user_first_interaction = user_just_asked_initial_question or user_just_clicked_suggestion
+has_message_history = len(st.session_state.messages) > 0
+
+if not user_first_interaction and not has_message_history:
+    st.session_state.messages = []
+
+    with st.container():
+        st.chat_input("Nhap cau hoi dau tien...", key="initial_question")
+        st.pills(
+            label="Vi du",
+            label_visibility="collapsed",
+            options=list(SUGGESTIONS.keys()),
+            key="selected_suggestion",
+        )
+
+    st.button(
+        "&nbsp;:small[:gray[:material/balance: Thong tin phap ly]]",
+        type="tertiary",
+        on_click=show_disclaimer_dialog,
+    )
+
+    st.stop()
+
 
 for history_index, message in enumerate(st.session_state.messages):
     role = message.get("role", "assistant")
@@ -493,15 +577,35 @@ for history_index, message in enumerate(st.session_state.messages):
                 st.error(message["error"])
 
 
-prompt = st.chat_input("Nhap cau hoi...")
+user_message = st.chat_input("Nhap cau hoi tiep theo...")
+message_source: Optional[str] = None
 
-if prompt:
-    user_message = {"role": "user", "content": prompt}
-    st.session_state.messages.append(user_message)
+if not user_message:
+    if user_just_asked_initial_question:
+        user_message = st.session_state.initial_question
+        message_source = "initial"
+    elif user_just_clicked_suggestion:
+        selection = st.session_state.selected_suggestion
+        if selection in SUGGESTIONS:
+            user_message = SUGGESTIONS[selection]
+            message_source = "suggestion"
+
+if user_message:
+    raw_prompt = user_message
+    display_prompt = raw_prompt.replace("$", r"\$")
+
+    if message_source == "initial":
+        st.session_state.initial_question = None
+    if message_source == "suggestion":
+        st.session_state.selected_suggestion = None
+
+    user_record = {"role": "user", "content": raw_prompt}
+    st.session_state.messages.append(user_record)
+
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(display_prompt)
 
-    payload_request = {"text": prompt, "session_id": SESSION_ID}
+    payload_request = {"text": raw_prompt, "session_id": SESSION_ID}
 
     assistant_container = st.chat_message("assistant")
     with assistant_container:
