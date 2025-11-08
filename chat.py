@@ -1,5 +1,6 @@
 import base64
 import datetime
+import html
 import json
 import uuid
 from pathlib import Path
@@ -23,6 +24,15 @@ FALLBACK_SUGGESTIONS = [
     "Hướng dẫn các bước thử nghiệm và debug workflow n8n khi gặp lỗi.",
     "Có những cách nào để lưu trữ kết quả workflow (Google Sheet, DB, Snowflake...)?",
     "Gợi ý các kỹ thuật xác thực và giải mã để bảo vệ webhook của tôi.",
+]
+
+SUGGESTION_BADGE_PALETTE = [
+    ("#FF6B6B", "rgba(255, 107, 107, 0.15)"),
+    ("#F9A826", "rgba(249, 168, 38, 0.15)"),
+    ("#6BCB77", "rgba(107, 203, 119, 0.15)"),
+    ("#4D96FF", "rgba(77, 150, 255, 0.15)"),
+    ("#9B5DE5", "rgba(155, 93, 229, 0.15)"),
+    ("#FF5F7E", "rgba(255, 95, 126, 0.15)"),
 ]
 
 GENERIC_ERROR_MESSAGE = "Không thể thực hiện ngay lúc này."
@@ -133,6 +143,28 @@ def refresh_agent_suggestions(query_text: str) -> None:
 def prefill_chat_input(text: str) -> None:
     """Queues a suggestion to be inserted into the chat input box."""
     st.session_state.prefill_prompt = text
+
+
+def build_suggestion_badge(text: str, index: int, *, compact: bool = False) -> str:
+    """Returns a styled HTML badge for suggestion text."""
+    if not SUGGESTION_BADGE_PALETTE:
+        return html.escape(text)
+
+    primary, backdrop = SUGGESTION_BADGE_PALETTE[index % len(SUGGESTION_BADGE_PALETTE)]
+    font_size = "0.95rem" if compact else "1rem"
+    padding = "6px 10px" if compact else "10px 14px"
+    radius = "999px" if compact else "16px"
+    escaped = html.escape(text)
+
+    return (
+        f"<div style=\"background:{backdrop};border:1px solid {primary}33;"
+        f"border-radius:{radius};padding:{padding};display:flex;align-items:center;"
+        f"margin-bottom:10px;"
+        f"gap:8px;box-shadow:0 2px 8px rgba(15,23,42,0.08);\">"
+        f"<span style=\"color:{primary};font-weight:700;font-size:{font_size};\">#{index}</span>"
+        f"<span style=\"color:#0f172a;font-size:{font_size};line-height:1.4;\">{escaped}</span>"
+        "</div>"
+    )
 
 
 with title_row:
@@ -681,7 +713,8 @@ with st.sidebar:
     sidebar_suggestions = st.session_state.agent_suggestions[:3]
     if sidebar_suggestions:
         for idx, suggestion in enumerate(sidebar_suggestions, start=1):
-            st.markdown(f"**#{idx}** {suggestion}")
+            badge_html = build_suggestion_badge(suggestion, idx, compact=True)
+            st.markdown(badge_html, unsafe_allow_html=True)
     else:
         st.caption("Chưa có gợi ý nào khả dụng.")
     st.divider()
@@ -708,8 +741,7 @@ for history_index, message in enumerate(st.session_state.messages):
 
 
 st.divider()
-with st.container():
-    st.markdown("### Gợi ý từ Agent")
+with st.expander("Gợi ý từ Agent", expanded=True):
     st.text_area(
         "Nhập mô tả để lấy gợi ý",
         key="suggestion_seed",
@@ -725,9 +757,10 @@ with st.container():
             st.caption("Chưa có gợi ý phù hợp. Hãy nhập yêu cầu cụ thể hơn.")
         else:
             for idx, suggestion in enumerate(main_suggestions, start=1):
-                row_cols = st.columns([12, 2], gap="small")
+                row_cols = st.columns([14, 3], gap="small")
+                badge_html = build_suggestion_badge(suggestion, idx, compact=False)
                 with row_cols[0]:
-                    st.markdown(f":small[#{idx}] {suggestion}")
+                    st.markdown(badge_html, unsafe_allow_html=True)
                 with row_cols[1]:
                     st.button(
                         ":material/input:",
